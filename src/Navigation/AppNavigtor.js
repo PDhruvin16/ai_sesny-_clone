@@ -10,6 +10,8 @@ import ProjectSelectionScreen from '../Screens/ProjectSelction';
 import AddWccCreditsScreen from '../Screens/AddWcc';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ChatMesaageScreen from '../Screens/Chatmessage';
+
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
@@ -57,6 +59,8 @@ const AppNavigator = () => {
         <Stack.Screen name="Tab" component={BottomTabNavigator} />
         <Stack.Screen name="ProjectSelectionScreen" component={ProjectSelectionScreen} />
         <Stack.Screen name="AddWccCreditsScreen" component={AddWccCreditsScreen} />
+        
+        <Stack.Screen name='ChatMesaageScreen' component={ChatMesaageScreen}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

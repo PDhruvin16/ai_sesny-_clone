@@ -266,3 +266,12 @@ fontWeight:'bold'
 });
 
 export default HomeScreen;
+
+      {/* Chat List */}
+      {/* <FlatList
+        data={dummyChats}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <ChatItem chat={item} onPress={() => handleChatPress(item)} />
+        )}
+      /> */}
