@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "247529059396",
+    "project_id": "aisensy-dadbb",
+    "storage_bucket": "aisensy-dadbb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:247529059396:android:28e15459cd4ed23bf9b811",
+        "android_client_info": {
+          "package_name": "com.ai_sensy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqK1zaf9gVsywU0jFUOn4z1Wc-VZQEgzM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
