@@ -60,7 +60,7 @@ const AppNavigator = () => {
         <Stack.Screen name="ProjectSelectionScreen" component={ProjectSelectionScreen} />
         <Stack.Screen name="AddWccCreditsScreen" component={AddWccCreditsScreen} />
         
-        <Stack.Screen name='ChatMesaageScreen' component={ChatMesaageScreen}/>
+        <Stack.Screen name='ChatMessageScreen' component={ChatMesaageScreen}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

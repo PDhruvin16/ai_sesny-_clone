@@ -70,16 +70,20 @@ const ChatItem = ({ chat, onPress }) => {
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
-      {/* Assuming the profile picture is in chat.receiverData.profilePic */}
-      {/* <Image source={{ uri: chat.receiverData?.profilePic  }} style={styles.profilePic} /> */}
+
+      <Image source={{ uri: chat.receiverData?.profilePic  }} style={styles.profilePic} />
       <View style={styles.textContainer}>
         <View style={styles.header}>
-          {/* Assuming the name is in chat.receiverData.name */}
-          <Text style={styles.name} numberOfLines={1}>{chat.receiverData?.phoneNumber}</Text>
-          {/* Format the updatedAt time to show the latest time */}
+       
+          <Text style={styles.name} numberOfLines={1}>
+  {Array.isArray(chat.receiverData) ? 
+    chat.receiverData[0]?.phoneNumber : 
+    chat.receiverData?.phoneNumber}
+</Text>
+          
           <Text style={styles.time}>{formatTime(chat.updatedAt)}</Text>
         </View>
-        {/* Assuming the last message is in chat.lastText.text */}
+       
         <Text style={styles.lastMessage} numberOfLines={1}>{chat.lastText?.text}</Text>
       </View>
     </TouchableOpacity>

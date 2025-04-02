@@ -275,3 +275,26 @@ export default HomeScreen;
           <ChatItem chat={item} onPress={() => handleChatPress(item)} />
         )}
       /> */}
+      // const dummyChats = [
+      //   {
+      //     id: '1',
+      //     name: 'John Doe',
+      //     profilePic: 'https://randomuser.me/api/portraits/men/1.jpg',
+      //     lastMessage: 'Hey, how are you?',
+      //     time: '10:30 AM',
+      //   },
+      //   {
+      //     id: '2',
+      //     name: 'Alice Smith',
+      //     profilePic: 'https://randomuser.me/api/portraits/women/2.jpg',
+      //     lastMessage: 'Let\'s catch up soon!',
+      //     time: '9:15 AM',
+      //   },
+      //   {
+      //     id: '3',
+      //     name: 'Bob Brown',
+      //     profilePic: 'https://randomuser.me/api/portraits/men/3.jpg',
+      //     lastMessage: 'Got it, thanks!',
+      //     time: 'Yesterday',
+      //   },
+      // ];

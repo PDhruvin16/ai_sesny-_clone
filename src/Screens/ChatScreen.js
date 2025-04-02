@@ -60,38 +60,25 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import ChatItem from '../Components/ChatItem';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const dummyChats = [
-  {
-    id: '1',
-    name: 'John Doe',
-    profilePic: 'https://randomuser.me/api/portraits/men/1.jpg',
-    lastMessage: 'Hey, how are you?',
-    time: '10:30 AM',
-  },
-  {
-    id: '2',
-    name: 'Alice Smith',
-    profilePic: 'https://randomuser.me/api/portraits/women/2.jpg',
-    lastMessage: 'Let\'s catch up soon!',
-    time: '9:15 AM',
-  },
-  {
-    id: '3',
-    name: 'Bob Brown',
-    profilePic: 'https://randomuser.me/api/portraits/men/3.jpg',
-    lastMessage: 'Got it, thanks!',
-    time: 'Yesterday',
-  },
-];
+
 
 const ChatScreen = ({ navigation }) => {
   const [searchText, setSearchText] = useState('');
   const [chats, setChats] = useState([]);
   console.log(chats,'chatssssssss')
   const [loading, setLoading] = useState(false);
+  // const handleChatPress = (chat) => {
+  //   navigation.navigate('ChatMesaageScreen', { chat });
+  // };
   const handleChatPress = (chat) => {
-    navigation.navigate('ChatMesaageScreen', { chat });
+    // Extract the phone number from receiverData
+    const phoneNumber = Array.isArray(chat.receiverData) ? 
+      chat.receiverData[0]?.phoneNumber : 
+      chat.receiverData?.phoneNumber;
+  const id= chat._id;
+    navigation.navigate('ChatMessageScreen', { chatName: phoneNumber ,id });
   };
+  
   useEffect(() => {
     const fetchChats = async () => {
       setLoading(true);
@@ -159,7 +146,16 @@ const ChatScreen = ({ navigation }) => {
       ) : (
        
         <FlatList
-  data={chats.filter((chat) => chat.receiverData[0]?.phoneNumber.toLowerCase().includes(searchText.toLowerCase()))}
+  // data={chats.filter((chat) => chat.receiverData[0]?.phoneNumber.toLowerCase().includes(searchText.toLowerCase()))}
+  data={chats.filter((chat) => {
+    if (Array.isArray(chat.receiverData)) {
+      return chat.receiverData.length > 0 && 
+        chat.receiverData[0]?.phoneNumber?.toLowerCase().includes(searchText.toLowerCase());
+    } else if (chat.receiverData && typeof chat.receiverData === 'object') {
+      return chat.receiverData.phoneNumber?.toLowerCase().includes(searchText.toLowerCase());
+    }
+    return false;
+  })}
   keyExtractor={(item) => item._id} 
   renderItem={({ item }) => (
     <ChatItem chat={item} onPress={() => handleChatPress(item)} />
