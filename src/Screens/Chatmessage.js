@@ -1,136 +1,3 @@
-// import React, { useState } from 'react';
-// import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
-// import Icon from 'react-native-vector-icons/MaterialIcons';
-
-// const ChatMessageScreen = ({ route, navigation }) => {
-//   const { chat } = route.params;
-//   const [message, setMessage] = useState('');
-//   const [messages, setMessages] = useState([
-//     { id: '1', text: 'Hey! How are you?', sent: false },
-//     { id: '2', text: 'I am good, how about you?', sent: true },
-//   ]);
-
-//   const handleSend = () => {
-//     if (message.trim()) {
-//       setMessages([...messages, { id: Date.now().toString(), text: message, sent: true }]);
-//       setMessage('');
-//     }
-//   };
-
-//   const renderMessage = ({ item }) => (
-//     <View style={[styles.messageContainer, item.sent ? styles.sent : styles.received]}>
-//       <Text style={styles.messageText}>{item.text}</Text>
-//     </View>
-//   );
-
-//   return (
-//     <View style={styles.container}>
-//       {/* Header with Back Button and Chat Name */}
-//       <View style={styles.header}>
-//         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-//           <Icon name="arrow-back" size={24} color="#fff" />
-//         </TouchableOpacity>
-//         <Text style={styles.headerText}>{chat.name}</Text>
-//       </View>
-
-//       {/* Message List */}
-//       <FlatList
-//         data={messages}
-//         keyExtractor={(item) => item.id}
-//         renderItem={renderMessage}
-//         style={styles.messageList}
-//         contentContainerStyle={styles.messageListContent}
-//         inverted
-//       />
-
-//       {/* Message Input Box */}
-//       <View style={styles.inputContainer}>
-//         <TextInput
-//           style={styles.input}
-//           placeholder="Type a message..."
-//           value={message}
-//           onChangeText={setMessage}
-//         />
-//         <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-//           <Icon name="send" size={24} color="#fff" />
-//         </TouchableOpacity>
-//       </View>
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: '#f0f0f0',
-//   },
-//   header: {
-//     height: 60,
-//     backgroundColor: '#075E54',
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     paddingHorizontal: 12,
-//     elevation: 4,
-//   },
-//   backButton: {
-//     marginRight: 8,
-//   },
-//   headerText: {
-//     color: '#fff',
-//     fontSize: 20,
-//     fontWeight: 'bold',
-//   },
-//   messageList: {
-//     flex: 1,
-//     paddingHorizontal: 10,
-//   },
-//   messageListContent: {
-//     flexGrow: 1,
-//     justifyContent: 'flex-end',
-//   },
-//   messageContainer: {
-//     maxWidth: '80%',
-//     marginVertical: 4,
-//     padding: 10,
-//     borderRadius: 8,
-//   },
-//   sent: {
-//     alignSelf: 'flex-end',
-//     backgroundColor: '#DCF8C6',
-//   },
-//   received: {
-//     alignSelf: 'flex-start',
-//     backgroundColor: '#fff',
-//   },
-//   messageText: {
-//     fontSize: 16,
-//     color: '#333',
-//   },
-//   inputContainer: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     paddingHorizontal: 10,
-//     paddingVertical: 6,
-//     backgroundColor: '#fff',
-//     elevation: 4,
-//   },
-//   input: {
-//     flex: 1,
-//     height: 40,
-//     backgroundColor: '#eee',
-//     borderRadius: 20,
-//     paddingHorizontal: 16,
-//     fontSize: 16,
-//     marginRight: 8,
-//   },
-//   sendButton: {
-//     backgroundColor: '#075E54',
-//     padding: 10,
-//     borderRadius: 20,
-//   },
-// });
-
-// export default ChatMessageScreen;
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -145,12 +12,14 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomInput from '../Components/Custominput';
+
+import { getSocket } from '../Services/socket';
 const ChatMessageScreen = ({route, navigation}) => {
-  const {chat} = route.params;
   const {chatName, id} = route.params;
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [ws, setWs] = useState(null);
   useEffect(() => {
     const fetchMessages = async () => {
       setLoading(true);
@@ -199,9 +68,8 @@ const ChatMessageScreen = ({route, navigation}) => {
     };
 
     fetchMessages();
-  }, [id]);
+  }, []);
 
-  // Handle sending a new message
   const handleSend = async () => {
     if (message.trim()) {
       const newMessage = {id: Date.now().toString(), text: message, sent: true};
@@ -209,16 +77,32 @@ const ChatMessageScreen = ({route, navigation}) => {
 
       try {
         const token = await AsyncStorage.getItem('token');
-        await axios.post(
-          `http://192.168.1.49:6004/whatsapp/conversation/${id}`,
-          {text: message, sent: true},
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
+        if (!token) {
+          console.error('No token found');
+          return;
+        }
+
+        // Construct payload using dynamic recipient from chatName (which is the phone number)
+        let payload = {
+          to: [chatName], // chatName is passed from ChatScreen as the recipient's phone number
+          type: 'text',
+
+          text: {
+            body: message,
           },
-        );
+        };
+
+        console.log('Payload ===>>>', payload);
+
+        // Use the correct endpoint URL without additional parameters
+        const endpointUrl = 'http://192.168.1.49:6004/whatsapp/send-message';
+
+        await axios.post(endpointUrl, payload, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setMessage('');
       } catch (error) {
         console.error('Error sending message:', error);
@@ -226,17 +110,14 @@ const ChatMessageScreen = ({route, navigation}) => {
     }
   };
 
-  
-
   const renderMessage = ({item}) => {
     let messageText = 'Message not available';
-    const formatTime = (timestamp) => {
+    const formatTime = timestamp => {
       const date = new Date(timestamp);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
     };
-    // Determine message text based on message type
+
     if (item.IsIncoming) {
-      // Incoming message: directly use the text field
       messageText = item.text ?? 'Message not available';
     } else {
       // Outgoing message: check if text is a string or an object
@@ -250,7 +131,6 @@ const ChatMessageScreen = ({route, navigation}) => {
           ? bodyComponent.text
           : 'Message not available';
 
-        // Replace placeholders with actual values if variables exist
         if (item.text.variables) {
           item.text.variables.forEach((variable, index) => {
             const placeholder = `{{${index + 1}}}`;
@@ -274,6 +154,38 @@ const ChatMessageScreen = ({route, navigation}) => {
     );
   };
 
+  useEffect(() => {
+    const socket = getSocket();
+
+    // Listen for new incoming messages
+    socket.on('newIncomingMessage', (data) => {
+      console.log('New Incoming Message:', data);
+      const newMessage = {
+        id: data.conversationId,
+        text: data.text,
+        IsIncoming: true,
+        // updatedAt: data.updatedAt,
+        updatedAt: data.updatedAt || new Date().toISOString(),
+      };
+      setMessages((prevMessages) => [newMessage, ...prevMessages]);
+    });
+
+    // Listen for status updates
+    socket.on('UpdateStatusEvent', (data) => {
+      console.log('Status Update Event:', data);
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) =>
+          msg.id === data.messageId ? { ...msg, status: data.status } : msg,
+        ),
+      );
+    });
+
+    return () => {
+      socket.off('newIncomingMessage');
+      socket.off('UpdateStatusEvent');
+    };
+  }, []);
+  
   return (
     <View style={styles.container}>
       {/* Header with Back Button and Chat Name */}
@@ -286,14 +198,12 @@ const ChatMessageScreen = ({route, navigation}) => {
         <Text style={styles.headerText}>{chatName}</Text>
       </View>
 
-
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#075E54" />
         </View>
       ) : (
         <>
-         
           <FlatList
             data={messages}
             keyExtractor={item => item.id.toString()}
@@ -303,7 +213,6 @@ const ChatMessageScreen = ({route, navigation}) => {
             inverted
           />
 
-   
           <View style={styles.inputContainer}>
             <CustomInput
               style={styles.input}
@@ -396,13 +305,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     fontSize: 16,
     marginRight: 8,
-    paddingVertical:5
+    paddingVertical: 5,
   },
   sendButton: {
     backgroundColor: '#075E54',
     padding: 10,
     borderRadius: 20,
-    marginBottom:16
+    marginBottom: 16,
   },
 });
 
