@@ -80,7 +80,12 @@ const ChatItem = ({ chat, onPress }) => {
     chat.receiverData[0]?.phoneNumber : 
     chat.receiverData?.phoneNumber}
 </Text>
-          
+ {chat.unreadCount > 0 && (
+      <View style={styles.unreadBadge}>
+        <Text style={styles.unreadText}>{chat.unreadCount}</Text>
+      </View>
+    )}
+           
           <Text style={styles.time}>{formatTime(chat.updatedAt)}</Text>
         </View>
        
@@ -128,6 +133,18 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 12,
     color: '#999',
+  },
+  unreadBadge: {
+    backgroundColor: '#FF0000',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 5,
+  },
+  unreadText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 

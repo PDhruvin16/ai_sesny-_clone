@@ -1,13 +1,15 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import AppNavigator from './src/Navigation/AppNavigtor';
-import { persistor, store } from './src/Redux/store';
-import { PersistGate } from 'redux-persist/integration/react';
-import { Provider } from 'react-redux';
+import {persistor, store} from './src/Redux/store';
+import {PersistGate} from 'redux-persist/integration/react';
+import {Provider} from 'react-redux';
+import {initializeSocket} from './src/Services/socket';
 
-// const App = () => {
-//   return <AppNavigator />;
-// };
 const App = () => {
+  useEffect(() => {
+    
+    initializeSocket();
+  }, []);
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
