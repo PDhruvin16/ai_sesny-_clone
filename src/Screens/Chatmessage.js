@@ -19,9 +19,11 @@ import {useFocusEffect} from '@react-navigation/native';
 import {getSocket} from '../Services/socket';
 import {clearActiveChatId} from '../Redux/chatSlice';
 import { useDispatch } from 'react-redux';
+import { readMessagesFromRealm, syncMessagesToRealm, upsertMessageToRealm } from '../Utils/realmhelper';
+import { getRealm } from '../Utils/Database';
 
 const ChatMessageScreen = ({route, navigation}) => {
-  const {chatName, id} = route.params;
+  const {chatName, id,} = route.params;
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,60 +34,121 @@ useFocusEffect(
   React.useCallback(() => {
     return () => {
       console.log(id, 'Clearing active chat ID on back or gesture');
-      dispatch(clearActiveChatId()); // Clear active chat ID on blur
+      
+      dispatch(clearActiveChatId());
+     // Clear active chat ID on blur
     };
   }, [id])
 );
 
+
+const fetchMessages = async () => {
+  setLoading(true);
+  try {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      console.error('No token found');
+      return;
+    }
+
+    const response = await axios.get(
+      `http://192.168.1.62:6004/whatsapp/conversation/${id}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (
+      response.data.success &&
+      Array.isArray(response.data.result.textData)
+       // Log the fetched messages
+      
+    ) {
+      console.log('Fetched messages:', response.data.result.textData);
+      // First sync to Realm
+      await syncMessagesToRealm(response.data.result.textData);
+
+      // Now read messages from Realm
+      const realm = await getRealm();
+      const realmMessages = realm
+        .objects('Message')
+        .filtered('conversationId == $0', id)
+        .sorted('createdAt', true); // true = descending
+
+      // Convert to JS array
+      const messagesArray = realmMessages.map(msg => ({
+        id: msg._id,
+        text: msg.text,
+        IsIncoming: msg.IsIncoming,
+        from: msg.from,
+        to: msg.to,
+        status: msg.status,
+        updatedAt: msg.updatedAt,
+      }));
+console.log('Messages from Realm:', messagesArray);
+      setMessages(messagesArray);
+    } else {
+      console.error('Unexpected data format:', response.data);
+    }
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Move this function outside the useEffect so it can be reused
+// const fetchMessages = async () => {
+//   setLoading(true);
+//   try {
+//     const token = await AsyncStorage.getItem('token');
+//     if (!token) {
+//       console.error('No token found');
+//       return;
+//     }
+
+//     const response = await axios.get(
+//       `http://192.168.1.62:6004/whatsapp/conversation/${id}`,
+//       {
+//         headers: {
+//           'Content-Type': 'application/json',
+//           Authorization: `Bearer ${token}`,
+//         },
+//       },
+//     );
+
+//     console.log('Fetched messages:', response.data);
+
+//     if (
+//       response.data.success &&
+//       Array.isArray(response.data.result.textData)
+//     ) {
+//       const formattedMessages = response.data.result.textData.map(msg => ({
+//         id: msg._id,
+//         text: msg.text,
+//         IsIncoming: msg.IsIncoming,
+//         from: msg.from,
+//         to: msg.to,
+//         status: msg.status,
+//         updatedAt: msg.updatedAt,
+//       }));
+
+//       setMessages(formattedMessages);
+//     } else {
+//       console.error('Data is not in the expected format:', response.data);
+//     }
+//   } catch (error) {
+//     console.error('Error fetching messages:', error);
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
   useEffect(() => {
-    const fetchMessages = async () => {
-      setLoading(true);
-      try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) {
-          console.error('No token found');
-          return;
-        }
-
-        const response = await axios.get(
-          `http://192.168.1.62:6004/whatsapp/conversation/${id}`,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-
-        console.log('Fetched messages:', response.data);
-
-        if (
-          response.data.success &&
-          Array.isArray(response.data.result.textData)
-        ) {
-          // Map API response to a simplified message list
-          const formattedMessages = response.data.result.textData.map(msg => ({
-            id: msg._id,
-            text: msg.text,
-            IsIncoming: msg.IsIncoming,
-            from: msg.from,
-            to: msg.to,
-            status: msg.status,
-            updatedAt: msg.updatedAt,
-          }));
-
-          setMessages(formattedMessages);
-        } else {
-          console.error('Data is not in the expected format:', response.data);
-        }
-      } catch (error) {
-        console.error('Error fetching messages:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMessages();
+  fetchMessages();
   }, []);
 
   const handleSend = async () => {
@@ -126,6 +189,8 @@ useFocusEffect(
       }
     }
   };
+  
+  
   const renderMessage = ({item}) => {
     let messageText = 'Message not available';
     const formatTime = timestamp => {
@@ -135,36 +200,27 @@ useFocusEffect(
   
     // Define status icon based on message status
     const getStatusIcon = status => {
+      if (status?.startsWith('Error')) {
+        return (
+          <Icon
+            name="error-outline"
+            size={16}
+            color="red"
+            style={styles.statusIcon}
+          />
+        );
+      }
+    
       switch (status) {
         case 'message_delivered':
-          return (
-            <Icon
-              name="done-all"
-              size={16}
-              color="#888" // Gray color for delivered
-              style={styles.statusIcon}
-            />
-          );
+          return <Icon name="done-all" size={16} color="#888" style={styles.statusIcon} />;
         case 'message_read':
-          return (
-            <Icon
-              name="done-all"
-              size={16}
-              color="#34B7F1" // Blue color for read
-              style={styles.statusIcon}
-            />
-          );
+          return <Icon name="done-all" size={16} color="#34B7F1" style={styles.statusIcon} />;
         default:
-          return (
-            <Icon
-              name="done"
-              size={16}
-              color="#888" // Gray color for sent (single tick)
-              style={styles.statusIcon}
-            />
-          );
+          return <Icon name="done" size={16} color="#888" style={styles.statusIcon} />;
       }
     };
+    
     
   
     if (item.IsIncoming) {
@@ -204,83 +260,93 @@ useFocusEffect(
     );
   };
   
+
+// useEffect(() => {
+//     const socket = getSocket();
+//     // Listen for new incoming messages
+//     socket.on('newIncomingMessage', data => {
+//       console.log('New Incoming Message:', data);
+
+//       if (data.conversationId === id) {
+//         const newMessage = {
+//           id: data.textId || Date.now().toString(),
+//           text: data.text || 'Message not available',
+//           IsIncoming: true,
+//           updatedAt: data.updatedAt || new Date().toISOString(),
+//           status: data.status || 'message_sent',
+//         };
+//         setMessages(prevMessages => [newMessage, ...prevMessages]);
+//         // Fetch messages again to update the list
+//         fetchMessages();
+   
+//       } else {
+//         console.log('Message does not belong to this conversation');
+//       }
+//     });
+
   
-  // const renderMessage = ({item}) => {
-  //   let messageText = 'Message not available';
-  //   const formatTime = timestamp => {
-  //     const date = new Date(timestamp);
-  //     return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-  //   };
+//     const handleStatusUpdate = data => {
+//       console.log('Status Update Event:', data);
+//       setMessages(prevMessages =>
+//         prevMessages.map(msg =>
+//           msg.id === data._id ? { ...msg, status: data.status } : msg
+//         )
+//       );
+//     };
+  
+//     socket.on('UpdateStatusEvent', handleStatusUpdate);
+  
+//     return () => {
+//       socket.off('UpdateStatusEvent', handleStatusUpdate); // 👈 Proper cleanup
+//     };
+//   }, [id]);
 
-  //   if (item.IsIncoming) {
-  //     messageText = item.text ?? 'Message not available';
-  //   } else {
-  //     // Outgoing message: check if text is a string or an object
-  //     if (typeof item.text === 'string') {
-  //       messageText = item.text;
-  //     } else if (item.text && Array.isArray(item.text.components)) {
-  //       const bodyComponent = item.text.components.find(
-  //         component => component.type === 'BODY',
-  //       );
-  //       messageText = bodyComponent
-  //         ? bodyComponent.text
-  //         : 'Message not available';
+useEffect(() => {
+  const socket = getSocket();
 
-  //       if (item.text.variables) {
-  //         item.text.variables.forEach((variable, index) => {
-  //           const placeholder = `{{${index + 1}}}`;
-  //           messageText = messageText.replace(placeholder, variable);
-  //         });
-  //       }
-  //     }
-  //   }
+  const handleIncomingMessage = async data => {
+    console.log('Incoming message (ChatMessageScreen):', data);
 
-  //   const messageTime = item.updatedAt ? formatTime(item.updatedAt) : '';
+    if (data?.conversationId === id) {
+      try {
+        // Write to Realm
+        await upsertMessageToRealm(data);
 
-  //   return (
-  //     <View
-  //       style={[
-  //         styles.messageContainer,
-  //         item.IsIncoming ? styles.received : styles.sent,
-  //       ]}>
-  //       <Text style={styles.messageText}>{messageText}</Text>
-  //       <Text style={styles.messageTime}>{messageTime}</Text>
-  //     </View>
-  //   );
-  // };
-  useEffect(() => {
-    const socket = getSocket();
-    // Listen for new incoming messages
-    socket.on('newIncomingMessage', data => {
-      console.log('New Incoming Message:', data);
+        // Read updated messages
+        // const realm = await getRealm();
+        // const realmMessages = realm
+        //   .objects('Message')
+        //   .filtered('conversationId == $0', id)
+        //   .sorted('createdAt', true);
 
-      if (data.conversationId === id) {
-        const newMessage = {
-          id: data.textId || Date.now().toString(),
-          text: data.text || 'Message not available',
-          IsIncoming: true,
-          updatedAt: data.updatedAt || new Date().toISOString(),
-          status: data.status || 'message_sent',
-        };
-        setMessages(prevMessages => [newMessage, ...prevMessages]);
-      } else {
-        console.log('Message does not belong to this conversation');
+        // const messagesArray = realmMessages.map(msg => ({
+        //   id: msg._id,
+        //   text: msg.text,
+        //   IsIncoming: msg.IsIncoming,
+        //   from: msg.from,
+        //   to: msg.to,
+        //   status: msg.status,
+        //   updatedAt: msg.updatedAt || new Date().toISOString(),
+        // }));
+
+        // setMessages(messagesArray);
+        const messagesArray = await readMessagesFromRealm(id);
+setMessages(messagesArray);
+fetchMessages()
+    
+      } catch (err) {
+        console.error('Failed to handle incoming message:', err);
       }
-    });
-
-  
-  socket.on('UpdateStatusEvent', data => {
-    console.log('Status Update Event:', data);
-    setMessages(prevMessages =>
-      prevMessages.map(msg =>
-        msg.id === data._id ? {...msg, status: data.status} : msg,
-      ),
-    );
-  });
-    return ()=> {
-socket.off('UpdateStatusEvent');
     }
-  }, [id]);
+  };
+
+  socket.on('newIncomingMessage', handleIncomingMessage);
+
+  return () => {
+    socket.off('newIncomingMessage', handleIncomingMessage);
+  };
+}, [id]);
+
   const handleBackPress = () => {
     console.log(id, 'jkghjklbhuilyijkn kjhihjhbj');
     dispatch(clearActiveChatId(id)); // Clear active chat ID

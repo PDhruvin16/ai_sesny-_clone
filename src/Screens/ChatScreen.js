@@ -14,91 +14,82 @@ import {useFocusEffect} from '@react-navigation/native';
 import {getSocket} from '../Services/socket';
 import {useDispatch, useSelector} from 'react-redux';
 import {clearActiveChatId, setActiveChatId} from '../Redux/chatSlice';
-
+import { ConversationSchema, LastTextSchema, ReceiverDataSchema } from '../Utils/ConversationSchema';
+import Realm from 'realm';
+import { getRealm } from '../Utils/Database';
+import { syncConversationsToRealm } from '../Utils/realmhelper';
 const ChatScreen = ({navigation}) => {
   const [searchText, setSearchText] = useState('');
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [unreadCounts, setUnreadCounts] = useState({});
+  // const [unreadCounts, setUnreadCounts] = useState({});
 
   const socket = getSocket();
   const activeChatId = useSelector(state => state.chat.activeChatId);
   const dispatch = useDispatch();
   console.log(activeChatId, 'sdfsdfsdfsdsdfsdf ===>>>>>>>>');
-
   useEffect(() => {
-    socket.on('newIncomingMessage', data => {
+    const handleIncomingMessage = async data => {
       console.log('New Incoming Message:', data);
-
+  
       if (data.conversationId) {
-        if (activeChatId === data.conversationId) {
-        console.log("id match");
-        
-          return ;
-        } else {
-          setUnreadCounts(prevCounts => {
-            const newCount = (prevCounts[data.conversationId] || 0) + 1;
-            console.log(`Unread Count for ${data.conversationId}:`, newCount); // Log unread count
-            return {
-              ...prevCounts,
-              [data.conversationId]: newCount,
-            };
+        try {
+          const realm = await getRealm();
+  
+          realm.write(() => {
+            // Update the conversation if it exists
+            let existingConversation = realm.objectForPrimaryKey(
+              'Conversation',
+              data.conversationId,
+            );
+            const newMessage = {text: data.text};
+            if (existingConversation) {
+              existingConversation.lastText = newMessage;
+              existingConversation.updatedAt = new Date();
+              existingConversation.unreadCount =
+                activeChatId === data.conversationId
+                  ? 0
+                  : (existingConversation.unreadCount || 0) + 1;
+            } else {
+              // If conversation not found, create a new one (based on incoming structure)
+              realm.create('Conversation', {
+                _id: data.conversationId,
+                lastText: data.message,
+                updatedAt: new Date(),
+                unreadCount: 1,
+                receiverData: [
+                  {
+                    phoneNumber: data.from, // Adjust depending on your schema
+                  },
+                ],
+              });
+            }
           });
+  
+          const updatedChats = realm
+            .objects('Conversation')
+            .sorted('updatedAt', true);
+          setChats([...updatedChats]);
+        } catch (err) {
+          console.error('Error updating Realm on new message:', err);
         }
-       
-        
-        
-        setChats(prevChats => {
-          const existingChatIndex = prevChats.findIndex(
-            chat => chat._id === data.conversationId,
-          );
-
-          const currentTime = new Date().toISOString();
-          // const newMessage = data.text;
-          const newMessage = {text: data.text};
-
-          if (existingChatIndex !== -1) {
-            const updatedChat = {
-              ...prevChats[existingChatIndex],
-              lastText: newMessage,
-              updatedAt: currentTime,
-              unreadCount: (prevChats[existingChatIndex].unreadCount || 0) + 1,
-            };
-
-            const updatedChats = [
-              updatedChat,
-              ...prevChats.filter((_, index) => index !== existingChatIndex),
-            ];
-            return updatedChats;
-          } else {
-            const newChat = {
-              _id: data.conversationId,
-              // lastMessage: newMessage,
-              lastText: {text: data.text},
-              updatedAt: currentTime,
-              receiverData: [{phoneNumber: data.senderPhoneNumber}],
-              unreadCount: 1,
-            };
-
-            return [newChat, ...prevChats];
-          }
-        });
       }
-    });
+    };
+  
+    socket.on('newIncomingMessage', handleIncomingMessage);
+  
     return () => {
-      socket.off('newIncomingMessage');
+      socket.off('newIncomingMessage', handleIncomingMessage);
     };
   }, [activeChatId]);
+  
+ 
+ 
 
   const fetchChats = async () => {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        console.error('No token found');
-        return;
-      }
-
       const response = await fetch(
         'http://192.168.1.62:6004/whatsapp/conversation?searchWith=all',
         {
@@ -107,63 +98,59 @@ const ChatScreen = ({navigation}) => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-        },
+        }
       );
-
+  
       const data = await response.json();
-      console.log('Fetched data:', data);
-
-      if (
-        data.success &&
-        data.result &&
-        Array.isArray(data.result.conversations)
-      ) {
-        setChats(data.result.conversations);
-      } else {
-        console.error('Data is not in the expected format:', data);
+  
+      if (data.success && Array.isArray(data.result.conversations)) {
+        await syncConversationsToRealm(data.result.conversations);
+      
+        const realm = await getRealm();
+        const allConversations = realm.objects('Conversation').sorted('updatedAt', true);
+        setChats([...allConversations]);
       }
+      
     } catch (error) {
       console.error('Error fetching chats:', error);
     } finally {
       setLoading(false);
     }
   };
-
+  
+    
   // Focus listener to refresh chat list
   useFocusEffect(
     React.useCallback(() => {
       fetchChats();
     }, []),
   );
-  const handleChatPress = chat => {
+  const handleChatPress = async chat => {
     const phoneNumber = Array.isArray(chat.receiverData)
       ? chat.receiverData[0]?.phoneNumber
       : chat.receiverData?.phoneNumber;
     const id = chat?._id;
-    console.log('Dispatching Active Chat ID:', id);
-    // Set the active chat ID
+  
     dispatch(setActiveChatId(id));
-    setUnreadCounts(prevCounts => ({
-      ...prevCounts,
-      [id]: 0,
-    }));
-
-    navigation.navigate('ChatMessageScreen', {chatName: phoneNumber, id});
+  
+    // Reset unread count for this chat only
+    const realm = await getRealm();
+    realm.write(() => {
+      const conv = realm.objectForPrimaryKey('Conversation', id);
+      if (conv) {
+        conv.unreadCount = 0;
+      }
+    });
+  
+    navigation.navigate('ChatMessageScreen', {
+      chatName: phoneNumber,
+      id,
+      refreshChats: fetchChats,
+    });
   };
+  
+  
 
-  // const handleChatPress = (chat) => {
-  //   const phoneNumber = Array.isArray(chat.receiverData)
-  //     ? chat.receiverData[0]?.phoneNumber
-  //     : chat.receiverData?.phoneNumber;
-  //   const id = chat?._id;
-
-  //   setUnreadCounts((prevCounts) => ({
-  //     ...prevCounts,
-  //     [id]: 0,
-  //   }));
-
-  //   navigation.navigate('ChatMessageScreen', { chatName: phoneNumber, id });
-  // };
 
   return (
     <View style={styles.container}>

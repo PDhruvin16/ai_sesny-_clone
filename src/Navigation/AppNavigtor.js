@@ -67,3 +67,112 @@ const AppNavigator = () => {
 };
 
 export default AppNavigator;
+
+
+  // const renderMessage = ({item}) => {
+  //   let messageText = 'Message not available';
+  //   const formatTime = timestamp => {
+  //     const date = new Date(timestamp);
+  //     return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+  //   };
+
+  //   if (item.IsIncoming) {
+  //     messageText = item.text ?? 'Message not available';
+  //   } else {
+  //     // Outgoing message: check if text is a string or an object
+  //     if (typeof item.text === 'string') {
+  //       messageText = item.text;
+  //     } else if (item.text && Array.isArray(item.text.components)) {
+  //       const bodyComponent = item.text.components.find(
+  //         component => component.type === 'BODY',
+  //       );
+  //       messageText = bodyComponent
+  //         ? bodyComponent.text
+  //         : 'Message not available';
+
+  //       if (item.text.variables) {
+  //         item.text.variables.forEach((variable, index) => {
+  //           const placeholder = `{{${index + 1}}}`;
+  //           messageText = messageText.replace(placeholder, variable);
+  //         });
+  //       }
+  //     }
+  //   }
+
+  //   const messageTime = item.updatedAt ? formatTime(item.updatedAt) : '';
+
+  //   return (
+  //     <View
+  //       style={[
+  //         styles.messageContainer,
+  //         item.IsIncoming ? styles.received : styles.sent,
+  //       ]}>
+  //       <Text style={styles.messageText}>{messageText}</Text>
+  //       <Text style={styles.messageTime}>{messageTime}</Text>
+  //     </View>
+  //   );
+  // };
+
+   // useEffect(() => {
+  //   socket.on('newIncomingMessage', data => {
+  //     console.log('New Incoming Message:', data);
+
+  //     if (data.conversationId) {
+  //       if (activeChatId === data.conversationId) {
+  //       console.log("id match");
+        
+  //         return ;
+  //       } else {
+  //         setUnreadCounts(prevCounts => {
+  //           const newCount = (prevCounts[data.conversationId] || 0) + 1;
+  //           console.log(`Unread Count for ${data.conversationId}:`, newCount); // Log unread count
+  //           return {
+  //             ...prevCounts,
+  //             [data.conversationId]: newCount,
+  //           };
+  //         });
+  //       }
+       
+        
+        
+  //       setChats(prevChats => {
+  //         const existingChatIndex = prevChats.findIndex(
+  //           chat => chat._id === data.conversationId,
+  //         );
+
+  //         const currentTime = new Date().toISOString();
+  //         // const newMessage = data.text;
+  //         const newMessage = {text: data.text};
+
+  //         if (existingChatIndex !== -1) {
+  //           const updatedChat = {
+  //             ...prevChats[existingChatIndex],
+  //             lastText: newMessage,
+  //             updatedAt: currentTime,
+  //             unreadCount: (prevChats[existingChatIndex].unreadCount || 0) + 1,
+  //           };
+
+  //           const updatedChats = [
+  //             updatedChat,
+  //             ...prevChats.filter((_, index) => index !== existingChatIndex),
+  //           ];
+  //           return updatedChats;
+  //         } else {
+  //           const newChat = {
+  //             _id: data.conversationId,
+  //             // lastMessage: newMessage,
+  //             lastText: {text: data.text},
+  //             updatedAt: currentTime,
+  //             receiverData: [{phoneNumber: data.senderPhoneNumber}],
+  //             unreadCount: 1,
+  //           };
+
+  //           return [newChat, ...prevChats];
+  //         }
+  //       });
+  //     }
+  //   });
+  //   return () => {
+  //     socket.off('newIncomingMessage');
+  //   };
+  // }, [activeChatId]);

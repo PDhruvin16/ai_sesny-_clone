@@ -31,6 +31,7 @@
     "react-native-screens": "^4.9.2",
     "react-native-vector-icons": "^10.2.0",
     "react-redux": "^9.2.0",
+    "realm": "^12.14.1",
     "redux-persist": "^6.0.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1"
