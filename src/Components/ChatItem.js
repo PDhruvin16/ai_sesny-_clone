@@ -60,7 +60,7 @@
 // export default ChatItem;
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-
+import Icon from 'react-native-vector-icons/MaterialIcons';
 const ChatItem = ({ chat, onPress }) => {
   // Formatting the time to a readable string (e.g., "10:45 AM")
   const formatTime = (timestamp) => {
@@ -71,7 +71,15 @@ const ChatItem = ({ chat, onPress }) => {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
 
-      <Image source={{ uri: chat.receiverData?.profilePic  }} style={styles.profilePic} />
+      {/* <Image source={{ uri: chat.receiverData?.profilePic  }} style={styles.profilePic} /> */}
+      {chat.receiverData?.profilePic ? (
+          <Image
+            source={{ uri: chat.receiverData.profilePic }}
+            style={styles.profilePic}
+          />
+        ) : (
+          <Icon name="account-circle" size={50} color="#888" />
+        )}
       <View style={styles.textContainer}>
         <View style={styles.header}>
        

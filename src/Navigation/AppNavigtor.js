@@ -176,3 +176,118 @@ export default AppNavigator;
   //     socket.off('newIncomingMessage');
   //   };
   // }, [activeChatId]);
+
+
+
+
+
+  
+    // const renderMessage = ({item}) => {
+    //   let messageText = 'Message not available';
+    //   const formatTime = timestamp => {
+    //     const date = new Date(timestamp);
+    //     return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+    //   };
+  
+    //   // Define status icon based on message status
+    //   const getStatusIcon = status => {
+    //     if (status?.startsWith('Error')) {
+    //       return (
+    //         <Icon
+    //           name="error-outline"
+    //           size={16}
+    //           color="red"
+    //           style={styles.statusIcon}
+    //         />
+    //       );
+    //     }
+  
+    //     switch (status) {
+    //       case 'message_delivered':
+    //         return <Icon name="done-all" size={16} color="#888" style={styles.statusIcon} />;
+    //       case 'message_read':
+    //         return <Icon name="done-all" size={16} color="#34B7F1" style={styles.statusIcon} />;
+    //       default:
+    //         return <Icon name="done" size={16} color="#888" style={styles.statusIcon} />;
+    //     }
+    //   };
+  
+    //   if (item.IsIncoming) {
+    //     messageText = item.text ?? 'Message not available';
+    //   } else {
+    //     if (typeof item.text === 'string') {
+    //       messageText = item.text;
+    //     } else if (item.text && Array.isArray(item.text.components)) {
+  
+    //       const bodyComponent = item.text.components.find(
+    //         component => component.type === 'BODY',
+    //       );
+    //       messageText = bodyComponent ? bodyComponent.text : 'Message not available';
+  
+    //       if (item.text.variables) {
+    //         item.text.variables.forEach((variable, index) => {
+    //           const placeholder = `{{${index + 1}}}`;
+    //           messageText = messageText.replace(placeholder, variable);
+    //         });
+    //       }
+    //     }
+    //   }
+  
+    //   const messageTime = item.updatedAt ? formatTime(item.updatedAt) : '';
+  
+    //   return (
+    //     <View
+    //       style={[
+    //         styles.messageContainer,
+    //         item.IsIncoming ? styles.received : styles.sent,
+    //       ]}>
+    //       <Text style={styles.messageText}>{messageText}</Text>
+    //       <View style={styles.statusContainer}>
+    //         <Text style={styles.messageTime}>{messageTime}</Text>
+    //         {!item.IsIncoming && getStatusIcon(item.status)}
+    //       </View>
+    //     </View>
+    //   );
+    // };
+
+
+    
+  // useEffect(() => {
+  //   const socket = getSocket();
+  //   // Listen for new incoming messages
+  //   socket.on('newIncomingMessage', data => {
+  //     console.log('New Incoming Message:', data);
+
+  //     if (data.conversationId === id) {
+  //       const newMessage = {
+  //         id: data.textId || Date.now().toString(),
+  //         text: data.text || 'Message not available',
+  //         IsIncoming: true,
+  //         updatedAt: data.updatedAt || new Date().toISOString(),
+  //         status: data.status || 'message_sent',
+  //       };
+  //       setMessages(prevMessages => [newMessage, ...prevMessages]);
+  //       // Fetch messages again to update the list
+  //       // fetchMessages();
+   
+  //     } else {
+  //       console.log('Message does not belong to this conversation');
+  //     }
+  //   });
+
+  
+  //   const handleStatusUpdate = data => {
+  //     console.log('Status Update Event:', data);
+  //     setMessages(prevMessages =>
+  //       prevMessages.map(msg =>
+  //         msg.id === data._id ? { ...msg, status: data.status } : msg
+  //       )
+  //     );
+  //   };
+  
+  //   socket.on('UpdateStatusEvent', handleStatusUpdate);
+  
+  //   return () => {
+  //     socket.off('UpdateStatusEvent', handleStatusUpdate); // 👈 Proper cleanup
+  //   };
+  // }, [id]);

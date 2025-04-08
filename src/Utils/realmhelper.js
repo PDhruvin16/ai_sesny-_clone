@@ -51,6 +51,7 @@ export const syncMessagesToRealm = async messages => {
     const realm = await getRealm();
 
     realm.write(() => {
+      realm.delete(realm.objects('Message'));
       messages.forEach(msg => {
         // Defensive type checking
         const _id = typeof msg._id === 'string' ? msg._id : String(msg._id);
@@ -76,6 +77,7 @@ export const syncMessagesToRealm = async messages => {
             conversationId,
             text,
             IsIncoming: msg.IsIncoming,
+            // IsIncoming: msg.IsIncoming,
             from: msg.from || '',
             type: msg.type || '',
             to: msg.to || '',
@@ -113,13 +115,15 @@ export const syncMessagesToRealm = async messages => {
         textId: messageData.textId || '',
       }, Realm.UpdateMode.Modified);
     });
+
   };
+
   export const readMessagesFromRealm = async (conversationId) => {
     const realm = await getRealm();
     const realmMessages = realm
       .objects('Message')
       .filtered('conversationId == $0', conversationId)
-      .sorted('createdAt', true);
+      // .sorted('createdAt', true);
   
     return realmMessages.map(msg => ({
       id: msg._id,

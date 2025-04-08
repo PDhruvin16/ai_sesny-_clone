@@ -12,148 +12,144 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomInput from '../Components/Custominput';
-
+import Realm from 'realm';
 // import { getSocket } from '../Services/socket';
 import {useFocusEffect} from '@react-navigation/native';
 
 import {getSocket} from '../Services/socket';
 import {clearActiveChatId} from '../Redux/chatSlice';
-import { useDispatch } from 'react-redux';
-import { readMessagesFromRealm, syncMessagesToRealm, upsertMessageToRealm } from '../Utils/realmhelper';
-import { getRealm } from '../Utils/Database';
+import {useDispatch} from 'react-redux';
+import {syncMessagesToRealm, upsertMessageToRealm} from '../Utils/realmhelper';
+import {getRealm} from '../Utils/Database';
 
 const ChatMessageScreen = ({route, navigation}) => {
-  const {chatName, id,} = route.params;
+  const {chatName, id} = route.params;
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ws, setWs] = useState(null);
-const dispatch =useDispatch();
+  const dispatch = useDispatch();
 
-useFocusEffect(
-  React.useCallback(() => {
-    return () => {
-      console.log(id, 'Clearing active chat ID on back or gesture');
-      
-      dispatch(clearActiveChatId());
-     // Clear active chat ID on blur
-    };
-  }, [id])
-);
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        console.log(id, 'Clearing active chat ID on back or gesture');
 
+        dispatch(clearActiveChatId());
+        // Clear active chat ID on blur
+      };
+    }, [id]),
+  );
 
-const fetchMessages = async () => {
-  setLoading(true);
-  try {
-    const token = await AsyncStorage.getItem('token');
-    if (!token) {
-      console.error('No token found');
-      return;
-    }
+  const fetchMessages = async () => {
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        return;
+      }
 
-    const response = await axios.get(
-      `http://192.168.1.62:6004/whatsapp/conversation/${id}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const response = await axios.get(
+        `http://192.168.1.62:6004/whatsapp/conversation/${id}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
         },
-      },
-    );
+      );
 
-    if (
-      response.data.success &&
-      Array.isArray(response.data.result.textData)
-       // Log the fetched messages
-      
-    ) {
-      console.log('Fetched messages:', response.data.result.textData);
-      // First sync to Realm
-      await syncMessagesToRealm(response.data.result.textData);
+      if (
+        response.data.success &&
+        Array.isArray(response.data.result.textData)
+        // Log the fetched messages
+      ) {
+        console.log('Fetched messages:', response.data.result.textData);
+        // First sync to Realm
+        await syncMessagesToRealm(response.data.result.textData);
 
-      // Now read messages from Realm
-      const realm = await getRealm();
-      const realmMessages = realm
-        .objects('Message')
-        .filtered('conversationId == $0', id)
-        .sorted('createdAt', true); // true = descending
+        // Now read messages from Realm
+        const realm = await getRealm();
+        const realmMessages = realm
+          .objects('Message')
+          .filtered('conversationId == $0', id)
+          .sorted('createdAt', true); // true = descending
 
-      // Convert to JS array
-      const messagesArray = realmMessages.map(msg => ({
-        id: msg._id,
-        text: msg.text,
-        IsIncoming: msg.IsIncoming,
-        from: msg.from,
-        to: msg.to,
-        status: msg.status,
-        updatedAt: msg.updatedAt,
-      }));
-console.log('Messages from Realm:', messagesArray);
-      setMessages(messagesArray);
-    } else {
-      console.error('Unexpected data format:', response.data);
+        // Convert to JS array
+        const messagesArray = realmMessages.map(msg => ({
+          id: msg._id,
+          text: msg.text,
+          IsIncoming: msg.IsIncoming,
+          from: msg.from,
+          to: msg.to,
+          status: msg.status,
+          updatedAt: msg.updatedAt,
+        }));
+        console.log('Messages from Realm:', messagesArray);
+        setMessages(messagesArray);
+      } else {
+        console.error('Unexpected data format:', response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Error fetching messages:', error);
-  } finally {
-    setLoading(false);
-  }
-};
-
-// Move this function outside the useEffect so it can be reused
-// const fetchMessages = async () => {
-//   setLoading(true);
-//   try {
-//     const token = await AsyncStorage.getItem('token');
-//     if (!token) {
-//       console.error('No token found');
-//       return;
-//     }
-
-//     const response = await axios.get(
-//       `http://192.168.1.62:6004/whatsapp/conversation/${id}`,
-//       {
-//         headers: {
-//           'Content-Type': 'application/json',
-//           Authorization: `Bearer ${token}`,
-//         },
-//       },
-//     );
-
-//     console.log('Fetched messages:', response.data);
-
-//     if (
-//       response.data.success &&
-//       Array.isArray(response.data.result.textData)
-//     ) {
-//       const formattedMessages = response.data.result.textData.map(msg => ({
-//         id: msg._id,
-//         text: msg.text,
-//         IsIncoming: msg.IsIncoming,
-//         from: msg.from,
-//         to: msg.to,
-//         status: msg.status,
-//         updatedAt: msg.updatedAt,
-//       }));
-
-//       setMessages(formattedMessages);
-//     } else {
-//       console.error('Data is not in the expected format:', response.data);
-//     }
-//   } catch (error) {
-//     console.error('Error fetching messages:', error);
-//   } finally {
-//     setLoading(false);
-//   }
-// };
+  };
 
   useEffect(() => {
-  fetchMessages();
+    fetchMessages();
   }, []);
 
+  // const handleSend = async () => {
+  //   if (message.trim()) {
+  //     const newMessage = {id: Date.now().toString(), text: message, sent: true};
+  //     setMessages(prevMessages => [newMessage, ...prevMessages]);
+
+  //     try {
+  //       const token = await AsyncStorage.getItem('token');
+  //       if (!token) {
+  //         console.error('No token found');
+  //         return;
+  //       }
+
+  //       let payload = {
+  //         to: [chatName], // chatName is passed from ChatScreen as the recipient's phone number
+  //         type: 'text',
+
+  //         text: {
+  //           body: message,
+  //         },
+  //       };
+
+  //       console.log('Payload ===>>>', payload);
+
+  //       // Use the correct endpoint URL without additional parameters
+  //       const endpointUrl = 'http://192.168.1.62:6004/whatsapp/send-message';
+
+  //       await axios.post(endpointUrl, payload, {
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       });
+  //       setMessage('');
+  //     } catch (error) {
+  //       console.error('Error sending message:', error);
+  //     }
+  //   }
+  // };
   const handleSend = async () => {
     if (message.trim()) {
-      const newMessage = {id: Date.now().toString(), text: message, sent: true};
+      const tempId = Date.now().toString();
+      const newMessage = {
+        id: tempId,
+        text: message,
+        IsIncoming: false,
+        status: 'message_sent',
+        updatedAt: new Date().toISOString(),
+      };
       setMessages(prevMessages => [newMessage, ...prevMessages]);
 
       try {
@@ -163,42 +159,51 @@ console.log('Messages from Realm:', messagesArray);
           return;
         }
 
-        let payload = {
-          to: [chatName], // chatName is passed from ChatScreen as the recipient's phone number
+        const payload = {
+          to: [chatName],
           type: 'text',
-
-          text: {
-            body: message,
-          },
+          text: {body: message},
         };
 
-        console.log('Payload ===>>>', payload);
-
-        // Use the correct endpoint URL without additional parameters
-        const endpointUrl = 'http://192.168.1.62:6004/whatsapp/send-message';
-
-        await axios.post(endpointUrl, payload, {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+        const res = await axios.post(
+          'http://192.168.1.62:6004/whatsapp/send-message',
+          payload,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
           },
-        });
+        );
+
+        const {textId} = res.data.result || {};
+        if (textId) {
+          setMessages(prevMessages =>
+            prevMessages.map(msg =>
+              msg.id === tempId ? {...msg, id: textId} : msg,
+            ),
+          );
+        }
+
         setMessage('');
       } catch (error) {
         console.error('Error sending message:', error);
       }
     }
   };
-  
-  
+
   const renderMessage = ({item}) => {
+    let header = '';
+    let body = '';
+    let footer = '';
+    let buttons = [];
     let messageText = 'Message not available';
+
     const formatTime = timestamp => {
       const date = new Date(timestamp);
       return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
     };
-  
-    // Define status icon based on message status
+
     const getStatusIcon = status => {
       if (status?.startsWith('Error')) {
         return (
@@ -210,41 +215,86 @@ console.log('Messages from Realm:', messagesArray);
           />
         );
       }
-    
       switch (status) {
         case 'message_delivered':
-          return <Icon name="done-all" size={16} color="#888" style={styles.statusIcon} />;
+          return (
+            <Icon
+              name="done-all"
+              size={16}
+              color="#888"
+              style={styles.statusIcon}
+            />
+          );
         case 'message_read':
-          return <Icon name="done-all" size={16} color="#34B7F1" style={styles.statusIcon} />;
+          return (
+            <Icon
+              name="done-all"
+              size={16}
+              color="#34B7F1"
+              style={styles.statusIcon}
+            />
+          );
         default:
-          return <Icon name="done" size={16} color="#888" style={styles.statusIcon} />;
+          return (
+            <Icon
+              name="done"
+              size={16}
+              color="#888"
+              style={styles.statusIcon}
+            />
+          );
       }
     };
-    
-    
-  
-    if (item.IsIncoming) {
-      messageText = item.text ?? 'Message not available';
-    } else {
+
+    // 🧠 If outgoing message and possibly templated
+    if (!item.IsIncoming && item.text) {
+      let parsedText = item.text;
+
       if (typeof item.text === 'string') {
-        messageText = item.text;
-      } else if (item.text && Array.isArray(item.text.components)) {
-        const bodyComponent = item.text.components.find(
-          component => component.type === 'BODY',
-        );
-        messageText = bodyComponent ? bodyComponent.text : 'Message not available';
-  
-        if (item.text.variables) {
-          item.text.variables.forEach((variable, index) => {
-            const placeholder = `{{${index + 1}}}`;
-            messageText = messageText.replace(placeholder, variable);
-          });
+        try {
+          parsedText = JSON.parse(item.text);
+        } catch (e) {
+          // console.log('❌ Failed to parse item.text:', item.text);
+          parsedText = null;
         }
       }
+      // parsedText = item.text
+      if (parsedText?.components) {
+        parsedText.components.forEach(component => {
+          switch (component.type) {
+            case 'HEADER':
+              header = component.text || '';
+              break;
+            case 'BODY':
+              body = component.text || '';
+              if (parsedText.variables) {
+                parsedText.variables.forEach((val, idx) => {
+                  const placeholder = `{{${idx + 1}}}`;
+                  body = body.replace(placeholder, val);
+                });
+              }
+              break;
+            case 'FOOTER':
+              footer = component.text || '';
+              break;
+            case 'BUTTONS':
+              buttons = component.buttons || [];
+              break;
+          }
+        });
+
+        messageText = [header, body, footer].filter(Boolean).join('\n\n');
+      } else {
+        messageText =
+          typeof item.text === 'string' ? item.text : 'Message not available';
+      }
+    } else {
+      // 📨 Incoming message — normal text
+      messageText = item.text ?? 'Message not available';
     }
-  
+
     const messageTime = item.updatedAt ? formatTime(item.updatedAt) : '';
-  
+
     return (
       <View
         style={[
@@ -252,6 +302,17 @@ console.log('Messages from Realm:', messagesArray);
           item.IsIncoming ? styles.received : styles.sent,
         ]}>
         <Text style={styles.messageText}>{messageText}</Text>
+
+        {/* Template buttons if any */}
+        {buttons.map((btn, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.messageText}
+            onPress={() => btn.url && Linking.openURL(btn.url)}>
+            <Text style={styles.buttonText}>{btn.text}</Text>
+          </TouchableOpacity>
+        ))}
+
         <View style={styles.statusContainer}>
           <Text style={styles.messageTime}>{messageTime}</Text>
           {!item.IsIncoming && getStatusIcon(item.status)}
@@ -259,93 +320,82 @@ console.log('Messages from Realm:', messagesArray);
       </View>
     );
   };
-  
 
-// useEffect(() => {
-//     const socket = getSocket();
-//     // Listen for new incoming messages
-//     socket.on('newIncomingMessage', data => {
-//       console.log('New Incoming Message:', data);
+  useEffect(() => {
+    const socket = getSocket();
 
-//       if (data.conversationId === id) {
-//         const newMessage = {
-//           id: data.textId || Date.now().toString(),
-//           text: data.text || 'Message not available',
-//           IsIncoming: true,
-//           updatedAt: data.updatedAt || new Date().toISOString(),
-//           status: data.status || 'message_sent',
-//         };
-//         setMessages(prevMessages => [newMessage, ...prevMessages]);
-//         // Fetch messages again to update the list
-//         fetchMessages();
-   
-//       } else {
-//         console.log('Message does not belong to this conversation');
-//       }
-//     });
+    const handleNewMessage = async data => {
+      console.log('New Incoming Message:', data);
 
-  
-//     const handleStatusUpdate = data => {
-//       console.log('Status Update Event:', data);
-//       setMessages(prevMessages =>
-//         prevMessages.map(msg =>
-//           msg.id === data._id ? { ...msg, status: data.status } : msg
-//         )
-//       );
-//     };
-  
-//     socket.on('UpdateStatusEvent', handleStatusUpdate);
-  
-//     return () => {
-//       socket.off('UpdateStatusEvent', handleStatusUpdate); // 👈 Proper cleanup
-//     };
-//   }, [id]);
+      if (data.conversationId === id) {
+        const newMessage = {
+          id: data.textId || Date.now().toString(),
+          text: data.text || 'Message not available',
+          IsIncoming: data.IsIncoming,
+          updatedAt: data.updatedAt || new Date().toISOString(),
+          status: data.status,
+        };
+        console.log('Message not saved to Realm:', newMessage);
+        try {
+          await upsertMessageToRealm(newMessage);
 
-useEffect(() => {
-  const socket = getSocket();
+          console.log('✅ Message saved to Realm:', newMessage);
+        } catch (err) {
+          console.error('Error saving message to Realm:', err);
+        }
 
-  const handleIncomingMessage = async data => {
-    console.log('Incoming message (ChatMessageScreen):', data);
-
-    if (data?.conversationId === id) {
-      try {
-        // Write to Realm
-        await upsertMessageToRealm(data);
-
-        // Read updated messages
-        // const realm = await getRealm();
-        // const realmMessages = realm
-        //   .objects('Message')
-        //   .filtered('conversationId == $0', id)
-        //   .sorted('createdAt', true);
-
-        // const messagesArray = realmMessages.map(msg => ({
-        //   id: msg._id,
-        //   text: msg.text,
-        //   IsIncoming: msg.IsIncoming,
-        //   from: msg.from,
-        //   to: msg.to,
-        //   status: msg.status,
-        //   updatedAt: msg.updatedAt || new Date().toISOString(),
-        // }));
-
-        // setMessages(messagesArray);
-        const messagesArray = await readMessagesFromRealm(id);
-setMessages(messagesArray);
-fetchMessages()
-    
-      } catch (err) {
-        console.error('Failed to handle incoming message:', err);
+        setMessages(prevMessages => [newMessage, ...prevMessages]);
       }
-    }
-  };
+    };
 
-  socket.on('newIncomingMessage', handleIncomingMessage);
+    // const handleStatusUpdate = data => {
+    //   console.log('Status Update Event:', data);
 
-  return () => {
-    socket.off('newIncomingMessage', handleIncomingMessage);
-  };
-}, [id]);
+    //   setMessages(prevMessages =>
+    //     prevMessages.map(msg => {
+    //       const match = msg.id?.toString() === data._id?.toString();
+    //       if (match) {
+    //         console.log('✅ Status updated for:', msg.id, 'to', data.status);
+    //         return {...msg, status: data.status};
+    //       }
+    //       return msg;
+    //     }),
+    //   );
+    // };
+    const handleStatusUpdate = data => {
+      console.log('Status Update Event:', data);
+
+      setMessages(prevMessages =>
+        prevMessages.map(msg => {
+          // const isSameId = msg.id?.toString() === data._id?.toString(); // ✅ Compare updated IDs
+          // console.log(
+          //   'Matching:',
+          //   msg.id,
+          //   'with',
+          //   data._id,
+          //   'sdasdasdasd []szdklzdmlkszdmflkldzf',
+          //   msg.id?.toString() === data._id?.toString(),
+          //   data._id?.toString(),
+          //   msg.id?.toString(),
+          // );
+          // if (isSameId) {
+          //   console.log('✅ Status updated for:', msg.id, 'to', data.status);
+          return {...msg, status: data.status};
+          // } else {
+          //   return {...msg, status: data.status};
+          // }
+          // return msg;
+        }),
+      );
+    };
+    socket.on('newIncomingMessage', handleNewMessage);
+    socket.on('UpdateStatusEvent', handleStatusUpdate);
+
+    return () => {
+      socket.off('newIncomingMessage', handleNewMessage);
+      socket.off('UpdateStatusEvent', handleStatusUpdate);
+    };
+  }, [id]);
 
   const handleBackPress = () => {
     console.log(id, 'jkghjklbhuilyijkn kjhihjhbj');
@@ -377,6 +427,7 @@ fetchMessages()
             renderItem={renderMessage}
             style={styles.messageList}
             contentContainerStyle={styles.messageListContent}
+            extraData={messages}
             inverted
           />
 

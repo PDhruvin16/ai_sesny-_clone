@@ -242,3 +242,43 @@ const styles = StyleSheet.create({
 });
 
 export default SignupScreen;
+
+  // useEffect(() => {
+  //   const socket = getSocket();
+  //   // Listen for new incoming messages
+  //   socket.on('newIncomingMessage', data => {
+  //     console.log('New Incoming Message:', data);
+
+  //     if (data.conversationId === id) {
+  //       const newMessage = {
+  //         id: data.textId || Date.now().toString(),
+  //         text: data.text || 'Message not available',
+  //         IsIncoming: true,
+  //         updatedAt: data.updatedAt || new Date().toISOString(),
+  //         status: data.status || 'message_sent',
+  //       };
+  //       setMessages(prevMessages => [newMessage, ...prevMessages]);
+        
+        
+   
+  //     } else {
+  //       console.log('Message does not belong to this conversation');
+  //     }
+  //   });
+
+  
+  //   const handleStatusUpdate = data => {
+  //     console.log('Status Update Event:', data);
+  //     setMessages(prevMessages =>
+  //       prevMessages.map(msg =>
+  //         msg.id === data._id ? { ...msg, status: data.status } : msg
+  //       )
+  //     );
+  //   };
+  
+  //   socket.on('UpdateStatusEvent', handleStatusUpdate);
+  
+  //   return () => {
+  //     socket.off('UpdateStatusEvent', handleStatusUpdate); // 👈 Proper cleanup
+  //   };
+  // }, [id]);

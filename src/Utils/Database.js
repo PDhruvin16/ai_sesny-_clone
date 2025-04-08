@@ -2,7 +2,7 @@
 
 import Realm from 'realm';
 
-// import { ConversationSchema, ReceiverDataSchema, LastTextSchema } from './schemas/ConversationSchema';
+
 
 
 import {ConversationSchema, ReceiverDataSchema, LastTextSchema, MessageSchema} from './conversationSchema';
