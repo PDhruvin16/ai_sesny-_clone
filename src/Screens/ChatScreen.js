@@ -15,7 +15,7 @@ import {getSocket} from '../Services/socket';
 import {useDispatch, useSelector} from 'react-redux';
 import {clearActiveChatId, setActiveChatId} from '../Redux/chatSlice';
 import { ConversationSchema, LastTextSchema, ReceiverDataSchema } from '../Utils/ConversationSchema';
-import Realm from 'realm';
+
 import { getRealm } from '../Utils/Database';
 import { syncConversationsToRealm } from '../Utils/realmhelper';
 const ChatScreen = ({navigation}) => {
@@ -27,7 +27,7 @@ const ChatScreen = ({navigation}) => {
   const socket = getSocket();
   const activeChatId = useSelector(state => state.chat.activeChatId);
   const dispatch = useDispatch();
-  console.log(activeChatId, 'sdfsdfsdfsdsdfsdf ===>>>>>>>>');
+
   useEffect(() => {
     const handleIncomingMessage = async data => {
       console.log('New Incoming Message:', data);
@@ -100,9 +100,11 @@ const ChatScreen = ({navigation}) => {
           },
         }
       );
+      
+      
   
       const data = await response.json();
-  
+      console.log(data,'response=====>');
       if (data.success && Array.isArray(data.result.conversations)) {
         await syncConversationsToRealm(data.result.conversations);
       
@@ -132,7 +134,9 @@ const ChatScreen = ({navigation}) => {
     const id = chat?._id;
   
     dispatch(setActiveChatId(id));
-  
+    const profilePic = Array.isArray(chat.receiverData)
+    ? chat.receiverData[0]?.profilePic
+    : chat.receiverData?.profilePic;
     // Reset unread count for this chat only
     const realm = await getRealm();
     realm.write(() => {
@@ -145,6 +149,7 @@ const ChatScreen = ({navigation}) => {
     navigation.navigate('ChatMessageScreen', {
       chatName: phoneNumber,
       id,
+      profilePic,
       refreshChats: fetchChats,
     });
   };

@@ -13,12 +13,12 @@ export const loginUser = createAsyncThunk(
       console.log('Response=====>>>>>>',response);
       
     //   const { token } = response?.data;
-      const { token } = response?.data?.result;
-
+      // const { token } = response?.data?.result;
+      const { token, role } = response?.data?.result;
       // Save token to AsyncStorage
       await AsyncStorage.setItem('token', token);
 
-      return { token };
+      return { token ,role };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Login failed');
     }
@@ -31,13 +31,19 @@ const authSlice = createSlice({
     token: null,
     loading: false,
     error: null,
+    role: null,
   },
   reducers: {
-    logout: (state) => {
-      state.token = null;
-      AsyncStorage.removeItem('token'); // Clear token from AsyncStorage
-    },
+  logout: (state) => {
+    state.token = null;
+    state.role = null;
+    state.name = null;
+    state.managedBy = null;
+
+    AsyncStorage.multiRemove(['token', 'role', 'name', 'managedBy']);
   },
+},
+
   extraReducers: (builder) => {
     builder
       .addCase(loginUser.pending, (state) => {
@@ -47,6 +53,7 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.token = action.payload.token;
+        state.role = action.payload.role;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;

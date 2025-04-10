@@ -17,35 +17,25 @@ const LoginScreen = ({navigation}) => {
   const [password, setPassword] = useState('');
 const dispatch = useDispatch();
 const { loading, error } = useSelector((state) => state.auth);
-  // const handleLogin = async () => {
-  //   if (!email || !password) {
-  //     Alert.alert('Error', 'Please fill all fields');
-  //     return;
-  //   }
 
-  //   try {
-  //     await auth().signInWithEmailAndPassword(email, password);
-  //     Alert.alert('Success', 'Login Successful');
-  //     navigation.navigate('Tab');
-  //   } catch (error) {
-  //     Alert.alert('Login Error', error.message);
-  //   }
-  // };
   const handleLogin = () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
-
     dispatch(loginUser({ email, password }))
-      .unwrap()
-      .then(() => {
-       
-        navigation.navigate('Tab'); // Navigate to the next screen
-      })
-      .catch((err) => {
-        Alert.alert('Login Error', err);
-      });
+    .unwrap()
+    .then((res) => {
+      if (res.role === 'super_admin') {
+        navigation.navigate('RoleSelection');
+      } else {
+        navigation.navigate('Tab'); // Or your home screen
+      }
+    })
+    .catch((err) => {
+      Alert.alert('Login Error', err);
+    });
+  
   };
   const handleGoogleSignInSuccess = userInfo => {
     console.log('User Info:', userInfo);

@@ -11,6 +11,7 @@ import AddWccCreditsScreen from '../Screens/AddWcc';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ChatMesaageScreen from '../Screens/Chatmessage';
+import RoleSelectionScreen from '../Screens/RoleSelction';
 
 const Stack = createStackNavigator();
 
@@ -51,11 +52,12 @@ const AppNavigator = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={isAuthenticated?'Tab':'LoginScreen'}
+        initialRouteName={isAuthenticated?'RoleSelection':'LoginScreen'}
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name="LoginScreen" component={LoginScreen} />
         <Stack.Screen name="SignupScreen" component={SignupScreen} />
+        <Stack.Screen name="RoleSelection" component={RoleSelectionScreen} />
         <Stack.Screen name="Tab" component={BottomTabNavigator} />
         <Stack.Screen name="ProjectSelectionScreen" component={ProjectSelectionScreen} />
         <Stack.Screen name="AddWccCreditsScreen" component={AddWccCreditsScreen} />

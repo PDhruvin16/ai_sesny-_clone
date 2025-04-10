@@ -53,11 +53,14 @@ export const MessageSchema = {
       to: 'int?',
       from: 'int?',
       type: 'string?',
+      chatBotMessage: 'string?',
       IsIncoming: 'bool?',
+      IsChatbot: 'bool?',
       textId: 'string',
       status: 'string',
       createdAt: 'date',
       updatedAt: 'date',
+
     },
   };
   

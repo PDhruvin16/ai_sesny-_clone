@@ -7,6 +7,7 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
+  Image
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
@@ -16,18 +17,22 @@ import Realm from 'realm';
 // import { getSocket } from '../Services/socket';
 import {useFocusEffect} from '@react-navigation/native';
 
+import ImageCropPicker from 'react-native-image-crop-picker';
 import {getSocket} from '../Services/socket';
 import {clearActiveChatId} from '../Redux/chatSlice';
 import {useDispatch} from 'react-redux';
 import {syncMessagesToRealm, upsertMessageToRealm} from '../Utils/realmhelper';
 import {getRealm} from '../Utils/Database';
+import RenderMessage from '../Components/Rendermessge';
 
 const ChatMessageScreen = ({route, navigation}) => {
-  const {chatName, id} = route.params;
+  const {chatName, id, profilePic} = route.params;
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [ws, setWs] = useState(null);
+  const [popupVisible, setPopupVisible] = useState(false);
+
+  const [selectedImage, setSelectedImage] = useState(null);
   const dispatch = useDispatch();
 
   useFocusEffect(
@@ -36,11 +41,34 @@ const ChatMessageScreen = ({route, navigation}) => {
         console.log(id, 'Clearing active chat ID on back or gesture');
 
         dispatch(clearActiveChatId());
-        // Clear active chat ID on blur
+      
       };
     }, [id]),
   );
-
+  const togglePopup = () => {
+    setPopupVisible(prev => !prev);
+  };
+  const pickImage = fieldName => {
+    ImageCropPicker.openPicker({
+      width: 300,
+      height: 400,
+      cropping: true,
+      mediaType: 'photo',
+    })
+      .then(image => {
+        const imageObj = {
+          uri: image.path,
+          name: image.filename || 'uploaded_image.jpg',
+          type: image.mime,
+        };
+        setSelectedImage(imageObj); // Save image for preview
+        handleChange(fieldName, imageObj); // Optional if form-based
+      })
+      .catch(e => {
+        console.log('Image pick cancelled or error:', e);
+      });
+  };
+  
   const fetchMessages = async () => {
     setLoading(true);
     try {
@@ -81,6 +109,8 @@ const ChatMessageScreen = ({route, navigation}) => {
           id: msg._id,
           text: msg.text,
           IsIncoming: msg.IsIncoming,
+          IsChatbot:msg.IsChatbot,
+          chatBotMessage: msg.chatBotMessage ? JSON.parse(msg.chatBotMessage) : null,
           from: msg.from,
           to: msg.to,
           status: msg.status,
@@ -102,44 +132,7 @@ const ChatMessageScreen = ({route, navigation}) => {
     fetchMessages();
   }, []);
 
-  // const handleSend = async () => {
-  //   if (message.trim()) {
-  //     const newMessage = {id: Date.now().toString(), text: message, sent: true};
-  //     setMessages(prevMessages => [newMessage, ...prevMessages]);
-
-  //     try {
-  //       const token = await AsyncStorage.getItem('token');
-  //       if (!token) {
-  //         console.error('No token found');
-  //         return;
-  //       }
-
-  //       let payload = {
-  //         to: [chatName], // chatName is passed from ChatScreen as the recipient's phone number
-  //         type: 'text',
-
-  //         text: {
-  //           body: message,
-  //         },
-  //       };
-
-  //       console.log('Payload ===>>>', payload);
-
-  //       // Use the correct endpoint URL without additional parameters
-  //       const endpointUrl = 'http://192.168.1.62:6004/whatsapp/send-message';
-
-  //       await axios.post(endpointUrl, payload, {
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       });
-  //       setMessage('');
-  //     } catch (error) {
-  //       console.error('Error sending message:', error);
-  //     }
-  //   }
-  // };
+   
   const handleSend = async () => {
     if (message.trim()) {
       const tempId = Date.now().toString();
@@ -191,135 +184,9 @@ const ChatMessageScreen = ({route, navigation}) => {
       }
     }
   };
-
-  const renderMessage = ({item}) => {
-    let header = '';
-    let body = '';
-    let footer = '';
-    let buttons = [];
-    let messageText = 'Message not available';
-
-    const formatTime = timestamp => {
-      const date = new Date(timestamp);
-      return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-    };
-
-    const getStatusIcon = status => {
-      if (status?.startsWith('Error')) {
-        return (
-          <Icon
-            name="error-outline"
-            size={16}
-            color="red"
-            style={styles.statusIcon}
-          />
-        );
-      }
-      switch (status) {
-        case 'message_delivered':
-          return (
-            <Icon
-              name="done-all"
-              size={16}
-              color="#888"
-              style={styles.statusIcon}
-            />
-          );
-        case 'message_read':
-          return (
-            <Icon
-              name="done-all"
-              size={16}
-              color="#34B7F1"
-              style={styles.statusIcon}
-            />
-          );
-        default:
-          return (
-            <Icon
-              name="done"
-              size={16}
-              color="#888"
-              style={styles.statusIcon}
-            />
-          );
-      }
-    };
-
-    // 🧠 If outgoing message and possibly templated
-    if (!item.IsIncoming && item.text) {
-      let parsedText = item.text;
-
-      if (typeof item.text === 'string') {
-        try {
-          parsedText = JSON.parse(item.text);
-        } catch (e) {
-          // console.log('❌ Failed to parse item.text:', item.text);
-          parsedText = null;
-        }
-      }
-      // parsedText = item.text
-      if (parsedText?.components) {
-        parsedText.components.forEach(component => {
-          switch (component.type) {
-            case 'HEADER':
-              header = component.text || '';
-              break;
-            case 'BODY':
-              body = component.text || '';
-              if (parsedText.variables) {
-                parsedText.variables.forEach((val, idx) => {
-                  const placeholder = `{{${idx + 1}}}`;
-                  body = body.replace(placeholder, val);
-                });
-              }
-              break;
-            case 'FOOTER':
-              footer = component.text || '';
-              break;
-            case 'BUTTONS':
-              buttons = component.buttons || [];
-              break;
-          }
-        });
-
-        messageText = [header, body, footer].filter(Boolean).join('\n\n');
-      } else {
-        messageText =
-          typeof item.text === 'string' ? item.text : 'Message not available';
-      }
-    } else {
-      // 📨 Incoming message — normal text
-      messageText = item.text ?? 'Message not available';
-    }
-
-    const messageTime = item.updatedAt ? formatTime(item.updatedAt) : '';
-
-    return (
-      <View
-        style={[
-          styles.messageContainer,
-          item.IsIncoming ? styles.received : styles.sent,
-        ]}>
-        <Text style={styles.messageText}>{messageText}</Text>
-
-        {/* Template buttons if any */}
-        {buttons.map((btn, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.messageText}
-            onPress={() => btn.url && Linking.openURL(btn.url)}>
-            <Text style={styles.buttonText}>{btn.text}</Text>
-          </TouchableOpacity>
-        ))}
-
-        <View style={styles.statusContainer}>
-          <Text style={styles.messageTime}>{messageTime}</Text>
-          {!item.IsIncoming && getStatusIcon(item.status)}
-        </View>
-      </View>
-    );
-  };
+ 
+  
+  
 
   useEffect(() => {
     const socket = getSocket();
@@ -348,43 +215,15 @@ const ChatMessageScreen = ({route, navigation}) => {
       }
     };
 
-    // const handleStatusUpdate = data => {
-    //   console.log('Status Update Event:', data);
 
-    //   setMessages(prevMessages =>
-    //     prevMessages.map(msg => {
-    //       const match = msg.id?.toString() === data._id?.toString();
-    //       if (match) {
-    //         console.log('✅ Status updated for:', msg.id, 'to', data.status);
-    //         return {...msg, status: data.status};
-    //       }
-    //       return msg;
-    //     }),
-    //   );
-    // };
     const handleStatusUpdate = data => {
       console.log('Status Update Event:', data);
 
       setMessages(prevMessages =>
         prevMessages.map(msg => {
-          // const isSameId = msg.id?.toString() === data._id?.toString(); // ✅ Compare updated IDs
-          // console.log(
-          //   'Matching:',
-          //   msg.id,
-          //   'with',
-          //   data._id,
-          //   'sdasdasdasd []szdklzdmlkszdmflkldzf',
-          //   msg.id?.toString() === data._id?.toString(),
-          //   data._id?.toString(),
-          //   msg.id?.toString(),
-          // );
-          // if (isSameId) {
-          //   console.log('✅ Status updated for:', msg.id, 'to', data.status);
+     
           return {...msg, status: data.status};
-          // } else {
-          //   return {...msg, status: data.status};
-          // }
-          // return msg;
+          
         }),
       );
     };
@@ -412,6 +251,14 @@ const ChatMessageScreen = ({route, navigation}) => {
           style={styles.backButton}>
           <Icon name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
+        {profilePic ? (
+          <Image
+            source={{ uri: profilePic }}
+            style={{ width: 36, height: 36, borderRadius: 18, marginRight: 10 }}
+          />
+        ) : (
+          <Icon name="account-circle" size={36} color="#888" style={{ marginRight: 10 }} />
+        )}
         <Text style={styles.headerText}>{chatName}</Text>
       </View>
 
@@ -424,7 +271,8 @@ const ChatMessageScreen = ({route, navigation}) => {
           <FlatList
             data={messages}
             keyExtractor={item => item.id.toString()}
-            renderItem={renderMessage}
+            // renderItem={renderMessage}
+            renderItem={({ item }) => <RenderMessage item={item}/>}
             style={styles.messageList}
             contentContainerStyle={styles.messageListContent}
             extraData={messages}
@@ -432,6 +280,9 @@ const ChatMessageScreen = ({route, navigation}) => {
           />
 
           <View style={styles.inputContainer}>
+          <TouchableOpacity onPress={togglePopup} style={styles.plusButton}>
+    <Icon name="add" size={28} color="#075E54" />
+  </TouchableOpacity>
             <CustomInput
               style={styles.input}
               placeholder="Type a message..."
@@ -444,11 +295,100 @@ const ChatMessageScreen = ({route, navigation}) => {
           </View>
         </>
       )}
+      {popupVisible && (
+  <View style={styles.popupMenu}>
+    <TouchableOpacity style={styles.popupItem}  onPress={() => pickImage('photo')}>
+      <Icon name="image" size={20} color="#075E54" />
+      <Text style={styles.popupText}>Photo</Text>
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.popupItem}>
+      <Icon name="insert-drive-file" size={20} color="#075E54" />
+      <Text style={styles.popupText}>Document</Text>
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.popupItem}>
+      <Icon name="contacts" size={20} color="#075E54" />
+      <Text style={styles.popupText}>Contact</Text>
+    </TouchableOpacity>
+  </View>
+)}
+{selectedImage && (
+  <View style={styles.previewContainer}>
+    <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} />
+    <TouchableOpacity onPress={() => setSelectedImage(null)} style={styles.closeButton}>
+      <Icon name="close" size={20} color="#fff" />
+    </TouchableOpacity>
+  </View>
+)}
+
+
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  popupMenu: {
+    position: 'absolute',
+    bottom: 60,
+    left: 10,
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  previewContainer: {
+    position: 'relative',
+    margin: 10,
+    alignSelf: 'flex-start',
+  },
+  
+  previewImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 10,
+  },
+  
+  closeButton: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  popupItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  
+  popupText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#075E54',
+  },
+  plusButton: {
+    padding: 2,
+    marginBottom: 16,
+  },
+  showListButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#34B7F1',
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    borderTopWidth:1
+  },
+  showListButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
   container: {
     flex: 1,
     backgroundColor: '#f0f0f0',
@@ -537,6 +477,39 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 20,
     marginBottom: 16,
+  },
+  headerImage: {
+    width: 200,
+    height: 120,
+    borderRadius: 10,
+    marginBottom: 8,
+    resizeMode:'center'
+  },
+  headerText: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  documentButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: '#f1f1f1',
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  documentText: {
+    color: '#007AFF',
+    textDecorationLine: 'underline',
+  },
+  button: {
+    padding: 8,
+    backgroundColor: '#E0F7FA',
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  buttonText: {
+    color: '#00796B',
+    fontWeight: '600',
   },
 });
 

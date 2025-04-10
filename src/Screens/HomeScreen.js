@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -14,17 +14,26 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Feather from 'react-native-vector-icons/Feather';
 import images from '../Constant/images';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logout } from '../Redux/authSlice';
 const HomeScreen = ({ navigation }) => {
   const [selectedProject, setSelectedProject] = useState('Project A');
   const [wccCredits, setWccCredits] = useState(1000); // Example WCC credit value
+  
+  const [managedBy, setManagedBy] = useState('');
 
   const data = [
     { id: '1', title: 'Broadcast Messages' },
     { id: '2', title: 'Manage Templates' },
     { id: '3', title: 'Analytics' },
   ];
-
+  useEffect(() => {
+    const getManagedBy = async () => {
+      const value = await AsyncStorage.getItem('managedBy');
+      if (value) setManagedBy(value);
+    };
+    getManagedBy();
+  }, []);
   const handleConnectWhatsAppAPI = () => {
     Linking.openURL('https://business.facebook.com/wa/manage/');
   };
@@ -35,7 +44,11 @@ const HomeScreen = ({ navigation }) => {
 
   const handleLogout = () => {
     console.log('Logout clicked');
-    navigation.navigate('LoginScreen');
+    dispatch(logout()); // Clear Redux + AsyncStorage
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'LoginScreen' }],
+    });
   };
 
   const handleNavigateToProjectSelection = () => {
@@ -74,7 +87,7 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.projectContainer}>
         <View style={styles.projectRow}>
           <Feather name="folder" size={20} color="#333" />
-          <Text style={styles.projectName}>{selectedProject}</Text>
+          <Text style={styles.projectName}>{managedBy}</Text>
           <TouchableOpacity onPress={handleNavigateToProjectSelection} style={styles.switchButton}>
             <MaterialIcons name="arrow-drop-down" size={24} color="#333" />
           </TouchableOpacity>

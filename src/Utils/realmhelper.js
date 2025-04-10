@@ -69,7 +69,19 @@ export const syncMessagesToRealm = async messages => {
             : new Date(msg.createdAt).toISOString();
         const text =
           typeof msg.text === 'string' ? msg.text : JSON.stringify(msg.text); // fallback to stringify object text
+          const chatBotMessage =
+  typeof msg.chatBotMessage === 'object' && msg.chatBotMessage !== null
+    ? JSON.stringify(msg.chatBotMessage)
+    : null;
 
+        // const text =
+        // typeof msg.text === 'string'
+        //   ? msg.text
+        //   : msg.IsChatbot && msg.chatBotMessage
+        //   ? `${msg.chatBotMessage?.header?.text ?? ''}\n\n${msg.chatBotMessage?.body ?? ''}\n\n${msg.chatBotMessage?.footer ?? ''}`
+        //   : JSON.stringify(msg.text); // fallback for other types
+      
+        
         realm.create(
           'Message',
           {
@@ -77,7 +89,8 @@ export const syncMessagesToRealm = async messages => {
             conversationId,
             text,
             IsIncoming: msg.IsIncoming,
-            // IsIncoming: msg.IsIncoming,
+            IsChatbot: msg.IsChatbot, 
+       
             from: msg.from || '',
             type: msg.type || '',
             to: msg.to || '',
@@ -85,6 +98,7 @@ export const syncMessagesToRealm = async messages => {
             status: msg.status || '',
             createdAt,
             updatedAt,
+            chatBotMessage
           },
           Realm.UpdateMode.Modified,
         );
