@@ -7,7 +7,7 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
-  Image
+  Image, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
@@ -24,6 +24,9 @@ import {useDispatch} from 'react-redux';
 import {syncMessagesToRealm, upsertMessageToRealm} from '../Utils/realmhelper';
 import {getRealm} from '../Utils/Database';
 import RenderMessage from '../Components/Rendermessge';
+import TemplateItem from '../Components/Templateitem';
+import { log } from 'console';
+import { parseTemplates } from '../Components/Parsetemplate';
 
 const ChatMessageScreen = ({route, navigation}) => {
   const {chatName, id, profilePic} = route.params;
@@ -31,7 +34,9 @@ const ChatMessageScreen = ({route, navigation}) => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [popupVisible, setPopupVisible] = useState(false);
-
+  const [templatesVisible, setTemplatesVisible] = useState(false);
+const [templates, setTemplates] = useState([]);
+const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const dispatch = useDispatch();
 
@@ -132,61 +137,151 @@ const ChatMessageScreen = ({route, navigation}) => {
     fetchMessages();
   }, []);
 
-   
   const handleSend = async () => {
-    if (message.trim()) {
-      const tempId = Date.now().toString();
-      const newMessage = {
-        id: tempId,
-        text: message,
-        IsIncoming: false,
-        status: 'message_sent',
-        updatedAt: new Date().toISOString(),
-      };
-      setMessages(prevMessages => [newMessage, ...prevMessages]);
-
-      try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) {
-          console.error('No token found');
-          return;
-        }
-
-        const payload = {
-          to: [chatName],
-          type: 'text',
-          text: {body: message},
-        };
-
-        const res = await axios.post(
-          'http://192.168.1.62:6004/whatsapp/send-message',
-          payload,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-
-        const {textId} = res.data.result || {};
-        if (textId) {
-          setMessages(prevMessages =>
-            prevMessages.map(msg =>
-              msg.id === tempId ? {...msg, id: textId} : msg,
-            ),
-          );
-        }
-
-        setMessage('');
-      } catch (error) {
-        console.error('Error sending message:', error);
+    if (!message.trim() && !selectedTemplate) return;
+  
+    const tempId = Date.now().toString();
+    const isTemplate = !!selectedTemplate;
+  
+    const newMessage = {
+      id: tempId,
+      text: isTemplate ? selectedTemplate.body : message,
+      IsIncoming: false,
+      status: 'message_sent',
+      updatedAt: new Date().toISOString(),
+    };
+  
+    setMessages(prevMessages => [newMessage, ...prevMessages]);
+  
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        return;
       }
+  
+      // Common payload base
+      const payload = {
+        to: [chatName],
+        type: isTemplate ? 'template' : 'text',
+      };
+  
+      // Add content depending on type
+      if (isTemplate) {
+     payload.template_name = selectedTemplate.name;
+      } else {
+        payload.text = { body: message };
+      }
+  
+      const res = await axios.post(
+        'http://192.168.1.62:6004/whatsapp/send-message',
+        payload,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+  
+      const { textId } = res.data.result || {};
+      if (textId) {
+        setMessages(prevMessages =>
+          prevMessages.map(msg =>
+            msg.id === tempId ? { ...msg, id: textId } : msg
+          )
+        );
+      }
+  
+      setMessage('');
+      setSelectedTemplate(null); // clear template after sending
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
   };
+  
+  // const handleSend = async () => {
+  //   if (message.trim()) {
+  //     const tempId = Date.now().toString();
+  //     const newMessage = {
+  //       id: tempId,
+  //       text: message,
+  //       IsIncoming: false,
+  //       status: 'message_sent',
+  //       updatedAt: new Date().toISOString(),
+  //     };
+  //     setMessages(prevMessages => [newMessage, ...prevMessages]);
+
+  //     try {
+  //       const token = await AsyncStorage.getItem('token');
+  //       if (!token) {
+  //         console.error('No token found');
+  //         return;
+  //       }
+
+  //       const payload = {
+  //         to: [chatName],
+  //         type: 'text',
+  //         text: {body: message},
+  //       };
+
+  //       const res = await axios.post(
+  //         'http://192.168.1.62:6004/whatsapp/send-message',
+  //         payload,
+  //         {
+  //           headers: {
+  //             'Content-Type': 'application/json',
+  //             Authorization: `Bearer ${token}`,
+  //           },
+  //         },
+  //       );
+
+  //       const {textId} = res.data.result || {};
+  //       if (textId) {
+  //         setMessages(prevMessages =>
+  //           prevMessages.map(msg =>
+  //             msg.id === tempId ? {...msg, id: textId} : msg,
+  //           ),
+  //         );
+  //       }
+
+  //       setMessage('');
+  //     } catch (error) {
+  //       console.error('Error sending message:', error);
+  //     }
+  //   }
+  // };
  
+const fetchTemplates = async () => {
+  try {
+    const token = await AsyncStorage.getItem('token');
+
+    const response = await axios.get('http://192.168.1.62:6004/whatsapp/template-meta', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    // 👉 Make sure templates are inside `result.templates`
+    if (response.data.success && Array.isArray(response.data.result)) {
+      const parsed = parseTemplates({ result: response.data.result }); 
+      console.log(parsed, 'Parsed templates:');
+      
+      setTemplates(parsed); // assumes setTemplates is in your scope
+    } else {
+      console.warn('Unexpected template structure:', response.data);
+    }
+  } catch (error) {
+    console.error('Error fetching templates:', error);
+  }
+};
   
-  
+  const handleTemplatesPress = () => {
+    setTemplatesVisible(prev => !prev);
+    if (!templatesVisible) {
+      fetchTemplates();
+    }
+  };
 
   useEffect(() => {
     const socket = getSocket();
@@ -243,6 +338,17 @@ const ChatMessageScreen = ({route, navigation}) => {
   };
 
   return (
+    <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+  >
+    <TouchableWithoutFeedback
+      onPress={() => {
+        setPopupVisible(false);
+        setTemplatesVisible(false);
+        Keyboard.dismiss();
+      }}
+    >
     <View style={styles.container}>
       {/* Header with Back Button and Chat Name */}
       <View style={styles.header}>
@@ -309,8 +415,38 @@ const ChatMessageScreen = ({route, navigation}) => {
       <Icon name="contacts" size={20} color="#075E54" />
       <Text style={styles.popupText}>Contact</Text>
     </TouchableOpacity>
+    <TouchableOpacity style={styles.popupItem} onPress={handleTemplatesPress}>
+  <Icon name="view-list" size={20} color="#075E54" />
+  <Text style={styles.popupText}>Templates</Text>
+</TouchableOpacity>
   </View>
 )}
+
+{templatesVisible && (
+  <View style={styles.templatesContainer}>
+    <View style={styles.templatesHeader}>
+      <Text style={styles.templatesTitle}>Templates</Text>
+      <TouchableOpacity onPress={() => setTemplatesVisible(false)}>
+        <Icon name="close" size={22} color="#000" />
+      </TouchableOpacity>
+    </View>
+    <FlatList
+      data={templates}
+      keyExtractor={(item) => item.id.toString()}
+      renderItem={({ item }) => (
+        <TemplateItem
+        item={item}
+        onSelect={(template) => {
+          setSelectedTemplate(template); // full object
+          setMessage(template.name);     // show template text
+          setTemplatesVisible(false);
+        }}
+      />
+      )}
+    />
+  </View>
+)}
+
 {selectedImage && (
   <View style={styles.previewContainer}>
     <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} />
@@ -322,6 +458,8 @@ const ChatMessageScreen = ({route, navigation}) => {
 
 
     </View>
+    </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -343,7 +481,7 @@ const styles = StyleSheet.create({
     margin: 10,
     alignSelf: 'flex-start',
   },
-  
+ 
   previewImage: {
     width: 120,
     height: 120,
@@ -373,6 +511,39 @@ const styles = StyleSheet.create({
     padding: 2,
     marginBottom: 16,
   },
+  templatesContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingTop: 10,
+    paddingHorizontal: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 10,
+  },
+  
+  templatesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderColor: '#ddd',
+  },
+  
+  templatesTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  
   showListButton: {
     justifyContent: 'center',
     alignItems: 'center',
