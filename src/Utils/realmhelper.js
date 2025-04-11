@@ -98,7 +98,8 @@ export const syncMessagesToRealm = async messages => {
             status: msg.status || '',
             createdAt,
             updatedAt,
-            chatBotMessage
+            chatBotMessage,
+            mediaUrl: msg.mediaUrl || '',
           },
           Realm.UpdateMode.Modified,
         );

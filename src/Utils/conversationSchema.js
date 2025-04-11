@@ -58,6 +58,7 @@ export const MessageSchema = {
       IsChatbot: 'bool?',
       textId: 'string',
       status: 'string',
+      mediaUrl: 'string?',
       createdAt: 'date',
       updatedAt: 'date',
 
