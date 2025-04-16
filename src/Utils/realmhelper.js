@@ -1,8 +1,9 @@
-import {getRealm} from './Database';
+// import {getRealm} from './Database';
 import Realm from 'realm';
-export const syncConversationsToRealm = async conversations => {
+import { useRealm } from './realmcontext';
+// import { useRealm } from './realmcontext';
+export const syncConversationsToRealm = async(realm, conversations) => {
   try {
-    const realm = await getRealm();
 
     realm.write(() => {
       // Purane data ko delete karo
@@ -46,9 +47,9 @@ export const syncConversationsToRealm = async conversations => {
   }
 };
 
-export const syncMessagesToRealm = async messages => {
+export const syncMessagesToRealm = async (realm,messages) => {
   try {
-    const realm = await getRealm();
+ 
 
     realm.write(() => {
       realm.delete(realm.objects('Message'));
@@ -67,19 +68,16 @@ export const syncMessagesToRealm = async messages => {
           typeof msg.createdAt === 'string'
             ? msg.createdAt
             : new Date(msg.createdAt).toISOString();
-        const text =
-          typeof msg.text === 'string' ? msg.text : JSON.stringify(msg.text); // fallback to stringify object text
+        // const text =
+        //   typeof msg.text === 'string' ? msg.text : JSON.stringify(msg.text); // fallback to stringify object text
+        const text = typeof msg.text === 'string' ? msg.text : msg.text === null ? null : JSON.stringify(msg.text);
+
           const chatBotMessage =
   typeof msg.chatBotMessage === 'object' && msg.chatBotMessage !== null
     ? JSON.stringify(msg.chatBotMessage)
     : null;
 
-        // const text =
-        // typeof msg.text === 'string'
-        //   ? msg.text
-        //   : msg.IsChatbot && msg.chatBotMessage
-        //   ? `${msg.chatBotMessage?.header?.text ?? ''}\n\n${msg.chatBotMessage?.body ?? ''}\n\n${msg.chatBotMessage?.footer ?? ''}`
-        //   : JSON.stringify(msg.text); // fallback for other types
+     
       
         
         realm.create(
@@ -112,8 +110,8 @@ export const syncMessagesToRealm = async messages => {
 
 
   // realmhelper.js
-  export const upsertMessageToRealm = async (messageData) => {
-    const realm = await getRealm();
+  export const upsertMessageToRealm = async (realm,messageData) => {
+
   
     realm.write(() => {
       realm.create('Message', {
@@ -133,21 +131,21 @@ export const syncMessagesToRealm = async messages => {
 
   };
 
-  export const readMessagesFromRealm = async (conversationId) => {
-    const realm = await getRealm();
-    const realmMessages = realm
-      .objects('Message')
-      .filtered('conversationId == $0', conversationId)
-      // .sorted('createdAt', true);
+  // export const readMessagesFromRealm = async (conversationId) => {
+  //   const realm = await getRealm();
+  //   const realmMessages = realm
+  //     .objects('Message')
+  //     .filtered('conversationId == $0', conversationId)
+  //     // .sorted('createdAt', true);
   
-    return realmMessages.map(msg => ({
-      id: msg._id,
-      text: msg.text,
-      IsIncoming: msg.IsIncoming,
-      from: msg.from,
-      to: msg.to,
-      status: msg.status,
-      updatedAt: msg.updatedAt,
-    }));
-  };
+  //   return realmMessages.map(msg => ({
+  //     id: msg._id,
+  //     text: msg.text,
+  //     IsIncoming: msg.IsIncoming,
+  //     from: msg.from,
+  //     to: msg.to,
+  //     status: msg.status,
+  //     updatedAt: msg.updatedAt,
+  //   }));
+  // };
   

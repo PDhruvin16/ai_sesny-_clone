@@ -7,8 +7,11 @@ export const parseTemplates = (apiData) => {
   
       const header = components.find(c => c.type === 'HEADER')?.text || '';
       const body = components.find(c => c.type === 'BODY')?.text || '';
-      const footer = components.find(c => c.type === 'FOOTER')?.text || '';
-      
+      // const footer = components.find(c => c.type === 'FOOTER')?.text || '';
+      const footer = typeof components.find(c => c.type === 'FOOTER')?.text === 'string'
+      ? components.find(c => c.type === 'FOOTER')?.text
+      : ''; // Ensure footer is a string
+
       const buttonComponent = components.find(c => c.type === 'BUTTONS');
       const buttons = buttonComponent?.buttons?.map(btn => ({
         text: btn.text,
@@ -27,3 +30,14 @@ export const parseTemplates = (apiData) => {
     });
   };
   
+
+  export const parseChatbots = (apiData) => {
+    return apiData.map(chatbot => ({
+      id: chatbot._id,
+      name: chatbot.chatbot_name,
+      description: chatbot.description,
+      source: chatbot.sourceBy,
+      createdAt: chatbot.createdAt,
+      updatedAt: chatbot.updatedAt,
+    }));
+  };

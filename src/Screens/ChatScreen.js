@@ -14,10 +14,17 @@ import {useFocusEffect} from '@react-navigation/native';
 import {getSocket} from '../Services/socket';
 import {useDispatch, useSelector} from 'react-redux';
 import {clearActiveChatId, setActiveChatId} from '../Redux/chatSlice';
-import { ConversationSchema, LastTextSchema, ReceiverDataSchema } from '../Utils/ConversationSchema';
+import {
+  ConversationSchema,
+  LastTextSchema,
+  ReceiverDataSchema,
+} from '../Utils/ConversationSchema';
 
-import { getRealm } from '../Utils/Database';
-import { syncConversationsToRealm } from '../Utils/realmhelper';
+import {syncConversationsToRealm} from '../Utils/realmhelper';
+import Header from '../Components/Header';
+import SearchBar from '../Components/Searchbar';
+import {useRealm} from '../Utils/realmcontext';
+import NetInfo from '@react-native-community/netinfo';
 const ChatScreen = ({navigation}) => {
   const [searchText, setSearchText] = useState('');
   const [chats, setChats] = useState([]);
@@ -27,15 +34,25 @@ const ChatScreen = ({navigation}) => {
   const socket = getSocket();
   const activeChatId = useSelector(state => state.chat.activeChatId);
   const dispatch = useDispatch();
+  const realm = useRealm();
 
+
+  useEffect(() => {
+    const loadCachedConversations = () => {
+      const cachedConversations = realm
+        .objects('Conversation')
+        .sorted('updatedAt', true);
+      setChats([...cachedConversations]); // Display cached data instantly
+    };
+
+    loadCachedConversations(); // Load cached data
+  }, [realm]);
   useEffect(() => {
     const handleIncomingMessage = async data => {
       console.log('New Incoming Message:', data);
-  
+
       if (data.conversationId) {
         try {
-          const realm = await getRealm();
-  
           realm.write(() => {
             // Update the conversation if it exists
             let existingConversation = realm.objectForPrimaryKey(
@@ -65,7 +82,7 @@ const ChatScreen = ({navigation}) => {
               });
             }
           });
-  
+
           const updatedChats = realm
             .objects('Conversation')
             .sorted('updatedAt', true);
@@ -75,53 +92,56 @@ const ChatScreen = ({navigation}) => {
         }
       }
     };
-  
+
     socket.on('newIncomingMessage', handleIncomingMessage);
-  
+
     return () => {
       socket.off('newIncomingMessage', handleIncomingMessage);
     };
   }, [activeChatId]);
-  
- 
- 
 
   const fetchChats = async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await fetch(
-        'http://192.168.1.62:6004/whatsapp/conversation?searchWith=all',
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+      const netInfo = await NetInfo.fetch();
+      if (netInfo.isConnected) {
+        const token = await AsyncStorage.getItem('token');
+        const response = await fetch(
+          'http://192.168.1.62:6004/whatsapp/conversation?searchWith=all',
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
           },
+        );
+
+        const data = await response.json();
+        console.log(data, 'response=====>');
+        if (data.success && Array.isArray(data.result.conversations)) {
+          await syncConversationsToRealm(realm, data.result.conversations);
+
+          const allConversations = realm
+            .objects('Conversation')
+            .sorted('updatedAt', true);
+          setChats([...allConversations]);
         }
-      );
-      
-      
-  
-      const data = await response.json();
-      console.log(data,'response=====>');
-      if (data.success && Array.isArray(data.result.conversations)) {
-        await syncConversationsToRealm(data.result.conversations);
-      
-        const realm = await getRealm();
-        const allConversations = realm.objects('Conversation').sorted('updatedAt', true);
-        setChats([...allConversations]);
+      } else{
+        console.log('No internet connection. Displaying local data.');
+        // const allConversations = realm
+        //   .objects('Conversation')
+        //   .sorted('updatedAt', true);
+        // setChats([...allConversations]);
+   
       }
-      
     } catch (error) {
       console.error('Error fetching chats:', error);
     } finally {
       setLoading(false);
     }
   };
-  
-    
-  // Focus listener to refresh chat list
+
   useFocusEffect(
     React.useCallback(() => {
       fetchChats();
@@ -132,20 +152,20 @@ const ChatScreen = ({navigation}) => {
       ? chat.receiverData[0]?.phoneNumber
       : chat.receiverData?.phoneNumber;
     const id = chat?._id;
-  
+
     dispatch(setActiveChatId(id));
     const profilePic = Array.isArray(chat.receiverData)
-    ? chat.receiverData[0]?.profilePic
-    : chat.receiverData?.profilePic;
+      ? chat.receiverData[0]?.profilePic
+      : chat.receiverData?.profilePic;
     // Reset unread count for this chat only
-    const realm = await getRealm();
+
     realm.write(() => {
       const conv = realm.objectForPrimaryKey('Conversation', id);
       if (conv) {
         conv.unreadCount = 0;
       }
     });
-  
+
     navigation.navigate('ChatMessageScreen', {
       chatName: phoneNumber,
       id,
@@ -153,66 +173,41 @@ const ChatScreen = ({navigation}) => {
       refreshChats: fetchChats,
     });
   };
-  
-  
-
 
   return (
+  
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Chats</Text>
-        <View style={styles.headerIcons}>
-          <TouchableOpacity>
-            <Icon name="search" size={24} color="#fff" style={styles.icon} />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Icon name="more-vert" size={24} color="#fff" style={styles.icon} />
-          </TouchableOpacity>
-        </View>
-      </View>
+    {/* Header */}
+    <Header title="Chats" />
+    <SearchBar value={searchText} onChangeText={setSearchText} />
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Icon name="search" size={20} color="#888" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search..."
-          value={searchText}
-          onChangeText={setSearchText}
-        />
-      </View>
-
-      {loading ? (
-        <Text style={styles.loadingText}>Loading...</Text>
-      ) : (
-        <FlatList
-          data={chats.filter(chat => {
-            if (Array.isArray(chat.receiverData)) {
-              return (
-                chat.receiverData.length > 0 &&
-                chat.receiverData[0]?.phoneNumber
-                  ?.toLowerCase()
-                  .includes(searchText.toLowerCase())
-              );
-            } else if (
-              chat.receiverData &&
-              typeof chat.receiverData === 'object'
-            ) {
-              return chat.receiverData.phoneNumber
-                ?.toLowerCase()
-                .includes(searchText.toLowerCase());
-            }
-            return false;
-          })}
-          keyExtractor={item => item._id}
-          extraData={chats}
-          renderItem={({item}) => (
-            <ChatItem chat={item} onPress={() => handleChatPress(item)} />
-          )}
-        />
+    {/* Conversation List */}
+    <FlatList
+      data={chats.filter(chat => {
+        if (Array.isArray(chat.receiverData)) {
+          return (
+            chat.receiverData.length > 0 &&
+            chat.receiverData[0]?.phoneNumber
+              ?.toLowerCase()
+              .includes(searchText.toLowerCase())
+          );
+        } else if (
+          chat.receiverData &&
+          typeof chat.receiverData === 'object'
+        ) {
+          return chat.receiverData.phoneNumber
+            ?.toLowerCase()
+            .includes(searchText.toLowerCase());
+        }
+        return false;
+      })}
+      keyExtractor={item => item._id}
+      extraData={chats}
+      renderItem={({item}) => (
+        <ChatItem chat={item} onPress={() => handleChatPress(item)} />
       )}
-    </View>
+    />
+  </View>
   );
 };
 

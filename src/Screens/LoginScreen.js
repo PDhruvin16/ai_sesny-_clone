@@ -77,6 +77,7 @@ const { loading, error } = useSelector((state) => state.auth);
           style={styles.input}
           value={password}
           onChangeText={setPassword}
+          isPassword={true}
           // secureTextEntry
         />
       </View>

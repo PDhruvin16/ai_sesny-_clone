@@ -2,7 +2,7 @@ import React from 'react';
 import {View, TouchableOpacity, Text, StyleSheet} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
-const PopupMenu = ({onPickImage, onPickVideo, onPickDocument, onTemplatesPress}) => {
+const PopupMenu = ({onPickImage, onPickVideo, onPickDocument, onTemplatesPress,onPickAudio,onChatbotPress}) => {
   return (
     <View style={styles.popupMenu}>
       <TouchableOpacity style={styles.popupItem} onPress={onPickImage}>
@@ -19,7 +19,10 @@ const PopupMenu = ({onPickImage, onPickVideo, onPickDocument, onTemplatesPress})
         <Icon name="insert-drive-file" size={20} color="#075E54" />
         <Text style={styles.popupText}>Document</Text>
       </TouchableOpacity>
-
+      <TouchableOpacity style={styles.popupItem} onPress={onPickAudio}>
+        <Icon name="audiotrack" size={20} color="#075E54" />
+        <Text style={styles.popupText}>Audio</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.popupItem}>
         <Icon name="contacts" size={20} color="#075E54" />
         <Text style={styles.popupText}>Contact</Text>
@@ -28,6 +31,10 @@ const PopupMenu = ({onPickImage, onPickVideo, onPickDocument, onTemplatesPress})
       <TouchableOpacity style={styles.popupItem} onPress={onTemplatesPress}>
         <Icon name="view-list" size={20} color="#075E54" />
         <Text style={styles.popupText}>Templates</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.popupItem} onPress={onChatbotPress}>
+        <Icon name="view-list" size={20} color="#075E54" />
+        <Text style={styles.popupText}>Chatbot</Text>
       </TouchableOpacity>
     </View>
   );

@@ -1,14 +1,14 @@
 
 
-import Realm from 'realm';
+// import Realm from 'realm';
 
 
 
 
-import {ConversationSchema, ReceiverDataSchema, LastTextSchema, MessageSchema} from './conversationSchema';
+// import {ConversationSchema, ReceiverDataSchema, LastTextSchema, MessageSchema} from './conversationSchema';
 
-export const getRealm = async () =>
-  await Realm.open({
-    schema: [ConversationSchema, ReceiverDataSchema, LastTextSchema,MessageSchema],
-    schemaVersion: 1,
-  });
+// export const getRealm = async () =>
+//   await Realm.open({
+//     schema: [ConversationSchema, ReceiverDataSchema, LastTextSchema,MessageSchema],
+//     schemaVersion: 1,
+//   });
