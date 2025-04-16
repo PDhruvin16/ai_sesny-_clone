@@ -16,10 +16,11 @@ import Feather from 'react-native-vector-icons/Feather';
 import images from '../Constant/images';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logout } from '../Redux/authSlice';
+import { useDispatch } from 'react-redux';
 const HomeScreen = ({ navigation }) => {
   const [selectedProject, setSelectedProject] = useState('Project A');
   const [wccCredits, setWccCredits] = useState(1000); // Example WCC credit value
-  
+  const dispatch = useDispatch();
   const [managedBy, setManagedBy] = useState('');
 
   const data = [

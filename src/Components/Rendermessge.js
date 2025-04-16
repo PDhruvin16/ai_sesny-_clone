@@ -302,26 +302,7 @@ case 'audio':
             );
           }
           break;
-        // case 'audio':
-        //   console.log('Audio case executed:', item.mediaUrl);
-        //   if (item.mediaUrl) {
-        //     header = (
-        //       <View style={styles.mediaContainer}>
-        //         <TouchableOpacity
-        //           onPress={() => Linking.openURL(item.mediaUrl)}>
-        //           <Image
-        //             source={{uri: item.thumbnailUrl || item.mediaUrl}}
-        //             style={styles.media}
-        //             resizeMode="cover"
-        //           />
-        //           <View style={styles.playIconContainer}>
-        //             <Icon name="play-circle-outline" size={40} color="#fff" />
-        //           </View>
-        //         </TouchableOpacity>
-        //       </View>
-        //     );
-        //   }
-        //   break;
+       
 
      
 
