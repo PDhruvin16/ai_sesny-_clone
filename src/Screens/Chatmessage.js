@@ -302,66 +302,7 @@ const realm = useRealm();
       console.error('Error fetching messages:', error);
     }
   };
-  // const fetchMessages = async () => {
-  //   setLoading(true);
-  //   try {
-  //     const token = await AsyncStorage.getItem('token');
-  //     if (!token) {
-  //       console.error('No token found');
-  //       return;
-  //     }
 
-  //     const response = await axios.get(
-  //       `http://192.168.1.62:6004/whatsapp/conversation/${id}`,
-  //       {
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       },
-  //     );
-
-  //     if (
-  //       response.data.success &&
-  //       Array.isArray(response.data.result.textData)
-  //       // Log the fetched messages
-  //     ) {
-  //       console.log('Fetched messages:', response.data.result.textData);
-  //       // First sync to Realm
-  //       await syncMessagesToRealm(realm,response.data.result.textData);
-
-  //       // Now read messages from Realm
-  //       // const realm = await getRealm();
-  //       const realmMessages = realm
-  //         .objects('Message')
-  //         .filtered('conversationId == $0', id)
-  //         .sorted('createdAt', true); // true = descending
-  //       const messagesArray = realmMessages.map(msg => ({
-  //         id: msg._id,
-  //         text: msg.text,
-  //         mediaUrl: msg.mediaUrl,
-  //         type: msg.type,
-  //         IsIncoming: msg.IsIncoming,
-  //         IsChatbot: msg.IsChatbot,
-  //         chatBotMessage: msg.chatBotMessage
-  //           ? JSON.parse(msg.chatBotMessage)
-  //           : null,
-  //         from: msg.from,
-  //         to: msg.to,
-  //         status: msg.status,
-  //         updatedAt: msg.updatedAt,
-  //       }));
-  //       console.log('Messages from Realm:', messagesArray);
-  //       setMessages(messagesArray);
-  //     } else {
-  //       console.error('Unexpected data format:', response.data);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error fetching messages:', error);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   useEffect(() => {
     fetchMessages();
@@ -586,6 +527,7 @@ console.log('Response:', res.data);
           await upsertMessageToRealm(realm,newMessage);
 
           console.log('✅ Message saved to Realm:', newMessage);
+          fetchMessages(); 
         } catch (err) {
           console.error('Error saving message to Realm:', err);
         }

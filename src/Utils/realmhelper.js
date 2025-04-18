@@ -1,13 +1,13 @@
 // import {getRealm} from './Database';
 import Realm from 'realm';
-import { useRealm } from './realmcontext';
+import {useRealm} from './realmcontext';
 // import { useRealm } from './realmcontext';
-export const syncConversationsToRealm = async(realm, conversations) => {
+export const syncConversationsToRealm = async (realm, conversations) => {
   try {
-
     realm.write(() => {
       // Purane data ko delete karo
       realm.delete(realm.objects('Conversation'));
+console.log('Deleting old conversations from Realm...');
 
       // Naye data insert karo
       conversations.forEach(conv => {
@@ -47,10 +47,8 @@ export const syncConversationsToRealm = async(realm, conversations) => {
   }
 };
 
-export const syncMessagesToRealm = async (realm,messages) => {
+export const syncMessagesToRealm = async (realm, messages) => {
   try {
- 
-
     realm.write(() => {
       realm.delete(realm.objects('Message'));
       messages.forEach(msg => {
@@ -70,16 +68,18 @@ export const syncMessagesToRealm = async (realm,messages) => {
             : new Date(msg.createdAt).toISOString();
         // const text =
         //   typeof msg.text === 'string' ? msg.text : JSON.stringify(msg.text); // fallback to stringify object text
-        const text = typeof msg.text === 'string' ? msg.text : msg.text === null ? null : JSON.stringify(msg.text);
+        const text =
+          typeof msg.text === 'string'
+            ? msg.text
+            : msg.text === null
+            ? null
+            : JSON.stringify(msg.text);
 
-          const chatBotMessage =
-  typeof msg.chatBotMessage === 'object' && msg.chatBotMessage !== null
-    ? JSON.stringify(msg.chatBotMessage)
-    : null;
+        const chatBotMessage =
+          typeof msg.chatBotMessage === 'object' && msg.chatBotMessage !== null
+            ? JSON.stringify(msg.chatBotMessage)
+            : null;
 
-     
-      
-        
         realm.create(
           'Message',
           {
@@ -87,8 +87,7 @@ export const syncMessagesToRealm = async (realm,messages) => {
             conversationId,
             text,
             IsIncoming: msg.IsIncoming,
-            IsChatbot: msg.IsChatbot, 
-       
+            IsChatbot: msg.IsChatbot,
             from: msg.from || '',
             type: msg.type || '',
             to: msg.to || '',
@@ -108,44 +107,81 @@ export const syncMessagesToRealm = async (realm,messages) => {
   }
 };
 
-
-  // realmhelper.js
-  export const upsertMessageToRealm = async (realm,messageData) => {
-
-  
-    realm.write(() => {
-      realm.create('Message', {
+// realmhelper.js
+export const upsertMessageToRealm = async (realm, messageData) => {
+  realm.write(() => {
+    realm.create(
+      'Message',
+      {
         _id: messageData._id || '',
         conversationId: messageData.conversationId || '',
-        text: typeof messageData.text === 'string' ? messageData.text : JSON.stringify(messageData.text),
+        text:
+          typeof messageData.text === 'string'
+            ? messageData.text
+            : JSON.stringify(messageData.text),
         from: messageData.from !== undefined ? Number(messageData.from) : null, // ✅ convert to int
-        to: messageData.to !== undefined ? Number(messageData.to) : null,       // ✅ convert to int
-        IsIncoming: typeof messageData.IsIncoming === 'boolean' ? messageData.IsIncoming : false,
+        to: messageData.to !== undefined ? Number(messageData.to) : null, // ✅ convert to int
+        IsIncoming:
+          typeof messageData.IsIncoming === 'boolean'
+            ? messageData.IsIncoming
+            : false,
         status: messageData.status || 'message_sent',
         createdAt: new Date(messageData.createdAt || Date.now()),
         updatedAt: new Date(),
         type: messageData.type || '',
         textId: messageData.textId || '',
-      }, Realm.UpdateMode.Modified);
-    });
+      },
+      Realm.UpdateMode.Modified,
+    );
+  });
+};
+ {/* Conversation List */}
+        {/* <FlatList
+          data={chats.filter(chat => {
+            if (Array.isArray(chat.receiverData)) {
+              return (
+                chat.receiverData.length > 0 &&
+                chat.receiverData[0]?.phoneNumber
+                  ?.toLowerCase()
+                  .includes(searchText.toLowerCase())
+              );
+            } else if (
+              chat.receiverData &&
+              typeof chat.receiverData === 'object'
+            ) {
+              return chat.receiverData.phoneNumber
+                ?.toLowerCase()
+                .includes(searchText.toLowerCase());
+            }
+            return false;
+          })}
+          keyExtractor={item => item._id}
+          extraData={chats}
+          // extraData={selectedChat}
+          renderItem={({item}) => (
+            // <ChatItem chat={item} onPress={() => handleChatPress(item)} />
+            <ChatItem
+              chat={item}
+              onPress={() => handleChatPress(item)}
+              onLongPress={() => handleChatLongPress(item)} // Handle long press
+              isSelected={selectedChat?._id === item._id} // Highlight selected chat
+            />
+          )}
+        /> */}
+// export const readMessagesFromRealm = async (conversationId) => {
+//   const realm = await getRealm();
+//   const realmMessages = realm
+//     .objects('Message')
+//     .filtered('conversationId == $0', conversationId)
+//     // .sorted('createdAt', true);
 
-  };
-
-  // export const readMessagesFromRealm = async (conversationId) => {
-  //   const realm = await getRealm();
-  //   const realmMessages = realm
-  //     .objects('Message')
-  //     .filtered('conversationId == $0', conversationId)
-  //     // .sorted('createdAt', true);
-  
-  //   return realmMessages.map(msg => ({
-  //     id: msg._id,
-  //     text: msg.text,
-  //     IsIncoming: msg.IsIncoming,
-  //     from: msg.from,
-  //     to: msg.to,
-  //     status: msg.status,
-  //     updatedAt: msg.updatedAt,
-  //   }));
-  // };
-  
+//   return realmMessages.map(msg => ({
+//     id: msg._id,
+//     text: msg.text,
+//     IsIncoming: msg.IsIncoming,
+//     from: msg.from,
+//     to: msg.to,
+//     status: msg.status,
+//     updatedAt: msg.updatedAt,
+//   }));
+// };

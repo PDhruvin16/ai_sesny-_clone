@@ -18,9 +18,9 @@ export const initializeSocket = () => {
       console.log('Socket.IO connected');
     });
 
-    socket.on('connect_error', (error) => {
-      console.error('Socket.IO connection error:', error);
-    });
+    // socket.on('connect_error', (error) => {
+    //   console.error('Socket.IO connection error:', error);
+    // });
 
     socket.on('disconnect', (reason) => {
       console.log('Socket.IO disconnected:', reason);
