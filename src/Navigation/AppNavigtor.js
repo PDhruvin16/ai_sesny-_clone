@@ -12,57 +12,67 @@ import AddWccCreditsScreen from '../Screens/AddWcc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ChatMesaageScreen from '../Screens/Chatmessage';
 import RoleSelectionScreen from '../Screens/RoleSelction';
+import Splashscreen from '../Screens/Splash';
+import OnboardingScreen from '../Screens/Onboaarding';
+import ImagePreviewScreen from '../Screens/ImagePrevieScreen';
+import VideoPreviewScreen from '../Screens/VideoPriviewScreen';
 
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // const [loading, setLoading] = useState(true);
+  // const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Check if the user is logged in
-  useEffect(() => {
-    const checkLoginStatus = async () => {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        if (token) {
-          setIsAuthenticated(true);
-        }
-      } catch (error) {
-        console.log('Error checking login status:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // // Check if the user is logged in
+  // useEffect(() => {
+  //   const checkLoginStatus = async () => {
+  //     try {
+  //       const token = await AsyncStorage.getItem('token');
+  //       if (token) {
+  //         setIsAuthenticated(true);
+  //       }
+  //     } catch (error) {
+  //       console.log('Error checking login status:', error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
-    checkLoginStatus();
-  }, []);
+  //   checkLoginStatus();
+  // }, []);
 
-  // Show a loading indicator while checking login status
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#03CF65" />
-      </View>
-    );
-  }
+  // // Show a loading indicator while checking login status
+  // if (loading) {
+  //   return (
+  //     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+  //       <ActivityIndicator size="large" color="#03CF65" />
+  //     </View>
+  //   );
+  // }
 
  
 
 
   return (
     <NavigationContainer>
-      <Stack.Navigator
+      {/* <Stack.Navigator
         initialRouteName={isAuthenticated?'RoleSelection':'LoginScreen'}
         screenOptions={{ headerShown: false }}
-      >
+      > */}
+            <Stack.Navigator initialRouteName="SplashScreen" screenOptions={{ headerShown: false }}>
+         <Stack.Screen name="SplashScreen" component={Splashscreen} />
+         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="LoginScreen" component={LoginScreen} />
         <Stack.Screen name="SignupScreen" component={SignupScreen} />
         <Stack.Screen name="RoleSelection" component={RoleSelectionScreen} />
         <Stack.Screen name="Tab" component={BottomTabNavigator} />
         <Stack.Screen name="ProjectSelectionScreen" component={ProjectSelectionScreen} />
         <Stack.Screen name="AddWccCreditsScreen" component={AddWccCreditsScreen} />
+
         
         <Stack.Screen name='ChatMessageScreen' component={ChatMesaageScreen}/>
+        <Stack.Screen name = 'ImagePriviewScreen' component={ImagePreviewScreen}/>
+        <Stack.Screen name = 'VideoPreviewScreen' component={VideoPreviewScreen}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

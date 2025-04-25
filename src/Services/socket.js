@@ -1,7 +1,7 @@
-
 import io from 'socket.io-client';
 
-const SOCKET_URL = 'http://192.168.1.62:6004';
+// const SOCKET_URL = 'http://';
+const SOCKET_URL ='http://192.168.1.62:6004'
 
 let socket = null;
 
@@ -10,7 +10,7 @@ export const initializeSocket = () => {
     socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: Infinity        ,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
     });
 
@@ -18,11 +18,11 @@ export const initializeSocket = () => {
       console.log('Socket.IO connected');
     });
 
-    // socket.on('connect_error', (error) => {
-    //   console.error('Socket.IO connection error:', error);
-    // });
+    socket.on('connect_error', error => {
+      console.error('Socket.IO connection error:', error);
+    });
 
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', reason => {
       console.log('Socket.IO disconnected:', reason);
     });
   }

@@ -1,3 +1,5 @@
+import { useNavigation } from '@react-navigation/native';
+import { type } from 'os';
 import React from 'react';
 import {
   View,
@@ -9,8 +11,11 @@ import {
   Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import Video from 'react-native-video';
+import Pdf from 'react-native-pdf';
 
 const RenderMessage = ({item}) => {
+  const navigation = useNavigation();
   let header = '';
   let body = '';
   let footer = '';
@@ -18,7 +23,7 @@ const RenderMessage = ({item}) => {
   let buttons = [];
   let lists = [];
   if (item.type === 'audio') {
-    console.log('Audio message URL:', item || 'No URL found');
+    // console.log('Audio message URL:', item || 'No URL found');
   }
   const formatTime = timestamp => {
     const date = new Date(timestamp);
@@ -216,7 +221,7 @@ const RenderMessage = ({item}) => {
       
       
       else {
-        console.log('Incoming message 1234567:', item);
+  
       //   messageText =
       //     typeof item.text === 'string' ? item.text : 'Message not available';
       // }
@@ -232,19 +237,20 @@ const RenderMessage = ({item}) => {
     }
 
     default: {
-      // 📩 Incoming messages
-      // console.log('Incoming message 1234567:', item);
+    
       switch (item.type) {
         case 'image':
           if (item.mediaUrl) {
             header = (
-              <View style={styles.mediaContainer}>
+              <TouchableOpacity
+              onPress={() => navigation.navigate('ImagePriviewScreen',{imageUrl:item.mediaUrl})}
+              style={styles.mediaContainer}>
                 <Image
                   source={{uri: item.mediaUrl}}
                   style={styles.media}
                   resizeMode="cover"
                 />
-              </View>
+              </TouchableOpacity>
             );
           }
           break;
@@ -254,11 +260,12 @@ const RenderMessage = ({item}) => {
             header = (
               <View style={styles.mediaContainer}>
                 <TouchableOpacity
-                  onPress={() => Linking.openURL(item.mediaUrl)}>
-                  <Image
+               onPress={() => navigation.navigate('VideoPreviewScreen',{videoUrl:item.mediaUrl})}>
+                  <Video
                     source={{uri: item.thumbnailUrl || item.mediaUrl}}
                     style={styles.media}
                     resizeMode="cover"
+                    // controls={true}
                   />
                   <View style={styles.playIconContainer}>
                     <Icon name="play-circle-outline" size={40} color="#fff" />
@@ -268,24 +275,39 @@ const RenderMessage = ({item}) => {
             );
           }
           break;
-case 'audio':
+// case 'audio':
          
-            if (item.mediaUrl) {
-              header = (
-                <View style={styles.mediaContainer}>
-                  <TouchableOpacity
-                    onPress={() => Linking.openURL(item.mediaUrl)}
-                    style={styles.audioButton}
-                  >
-                    <Icon name="play-circle-outline" size={40} color="#075E54" />
-                    <Text style={styles.audioText}>
-                      {item.fileName || 'Play Audio'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              );
-          }
-          break;
+//             if (item.mediaUrl) {
+//               header = (
+//                 <View style={styles.mediaContainer}>
+//                   <TouchableOpacity
+//                     onPress={() => Linking.openURL(item.mediaUrl)}
+//                     style={styles.audioButton}
+//                   >
+//                     <Icon name="play-circle-outline" size={40} color="#075E54" />
+//                     <Text style={styles.audioText}>
+//                       {item.fileName || 'Play Audio'}
+//                     </Text>
+//                   </TouchableOpacity>
+//                 </View>
+//               );
+//           }
+//           break;
+case 'audio':
+  if (item.mediaUrl) {
+    header = (
+      <View style={styles.mediaContainer}>
+        <Video
+          source={{ uri: item.mediaUrl }} // Audio URL
+          style={styles.audioPlayer} // Hide the video player UI
+          controls // Show playback controls
+          audioOnly // Ensure only audio is played
+          resizeMode="cover"
+        />
+      </View>
+    );
+  }
+  break;
         case 'document':
           if (item.mediaUrl) {
             header = (
@@ -294,9 +316,11 @@ case 'audio':
                   onPress={() => Linking.openURL(item.mediaUrl)}
                   style={styles.documentButton}>
                   <Icon name="insert-drive-file" size={40} color="#075E54" />
+                  <Image source={{uri:item.mediaUrl}}/>
                   <Text style={styles.documentText}>
                     {item.fileName || 'View Document'}
                   </Text>
+     
                 </TouchableOpacity>
               </View>
             );
@@ -454,6 +478,16 @@ const styles = StyleSheet.create({
   media: {
     width: 200,
     height: 200,
+  },
+  audioPlayer: {
+    width: '100%',
+    height: 50, // Adjust height for audio controls
+  },
+  pdf: {
+    width: 200, // Adjust width as needed
+    height: 300, // Adjust height as needed
+    borderRadius: 10,
+    overflow: 'hidden',
   },
   playIconContainer: {
     position: 'absolute',

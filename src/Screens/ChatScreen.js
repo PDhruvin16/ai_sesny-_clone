@@ -490,15 +490,15 @@ const ChatScreen = ({navigation}) => {
             }
           });
           Vibration.vibrate(500); // Vibrate for 500ms
-          console.log(updatedChats, 'updatedChats=====>');
+         
 
           const updatedChats = realm
             .objects('Conversation')
             .sorted('updatedAt', true);
           setChats([...updatedChats]);
-          setTimeout(() => {
-            fetchChats();
-          }, 3000); // Delay of 1 second before fetching chats again
+          // setTimeout(() => {
+          //   fetchChats();
+          // }, 3000); // Delay of 1 second before fetching chats again
         } catch (err) {
           console.error('Error updating Realm on new message:', err);
         }
