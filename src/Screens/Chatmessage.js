@@ -1261,10 +1261,11 @@ const ChatMessageScreen = ({route, navigation}) => {
           },
         },
       );
+console.log(response.data, 'Response from template API:');
 
       // 👉 Make sure templates are inside `result.templates`
-      if (response.data.success && Array.isArray(response.data.result)) {
-        const parsed = parseTemplates({result: response.data.result});
+      if (response.data.success && Array.isArray(response.data.result.data)) {
+        const parsed = parseTemplates({result: response.data.result.data});
         console.log(parsed, 'Parsed templates:');
 
         setTemplates(parsed); // assumes setTemplates is in your scope

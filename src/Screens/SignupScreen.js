@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert ,KeyboardAvoidingView,TouchableWithoutFeedback,Keyboard,ScrollView} from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import CountryPicker from 'react-native-country-picker-modal';
@@ -40,101 +40,105 @@ const SignupScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Signup for App Now</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            <Text style={styles.title}>Signup for App Now</Text>
 
-        <TouchableOpacity style={styles.googleButton}>
-          <Text style={styles.googleButtonText}>Sign up with Google</Text>
-        </TouchableOpacity>
-
-        <View style={styles.dividerContainer}>
-          <View style={styles.line} />
-          <Text style={styles.orText}>OR</Text>
-          <View style={styles.line} />
-        </View>
-
-        <View style={styles.row}>
-          <CustomInput
-            placeholder="First Name"
-            placeholderTextColor="#888"
-            style={[styles.input, styles.halfInput]}
-            value={firstName}
-            onChangeText={setFirstName}
-          />
-          <CustomInput
-            placeholder="Last Name"
-            placeholderTextColor="#888"
-            style={[styles.input, styles.halfInput]}
-            value={lastName}
-            onChangeText={setLastName}
-          />
-        </View>
-
-        <CustomInput
-          placeholder="Email"
-          placeholderTextColor="#888"
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-        />
-        <CustomInput
-          placeholder="Password"
-          placeholderTextColor="#888"
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-
-        <View style={styles.row}>
-        <CountryPicker
-            withCallingCode
-            withFilter
-            withFlag
-            countryCode={countryCode}
-            onSelect={(country) => {
-              setCountryCode(country.cca2);
-              setCallingCode(`+${country.callingCode}`);
-            }}
-            containerButtonStyle={styles.countryCodeInput}
-          />
-  <CustomInput
-            placeholder="Phone Number"
-            placeholderTextColor="#888"
-            style={[styles.input, styles.phoneNumberInput]}
-            value={`${callingCode} ${phoneNumber}`} // Display country code in the input
-            onChangeText={(text) => {
-              // Remove the calling code from the input before updating the phone number
-              const number = text.replace(callingCode, '').trim();
-              setPhoneNumber(number);
-            }}
-            keyboardType="phone-pad"
-          />
-        </View>
-      </View>
-
-      <View style={styles.footer}>
-    
             <CustomButton
-          title="Sign Up"
-          onPress={handleSignup}
-          style={styles.button}
-          textStyle={styles.buttonText}
-        />
+              title="Sign up with Google"
+              onPress={() => console.log('Google Signup')}
+              style={styles.googleButton}
+              textStyle={styles.googleButtonText}
+            />
 
-        {/* <TouchableOpacity onPress={() => navigation.navigate('LoginScreen')}>
-          <Text style={styles.linkText}>Already have an account? Login</Text>
-        </TouchableOpacity> */}
-        <CustomButton
-          title="Already have an account? Login"
-          onPress={() => navigation.navigate('LoginScreen')}
-          style={styles.button1}
-          textStyle={styles.linkText}
-        />
-      </View>
-    </View>
+            <View style={styles.dividerContainer}>
+              <View style={styles.line} />
+              <Text style={styles.orText}>OR</Text>
+              <View style={styles.line} />
+            </View>
+
+            <View style={styles.row}>
+              <CustomInput
+                placeholder="First Name"
+                placeholderTextColor="#888"
+                style={[styles.input, styles.halfInput]}
+                value={firstName}
+                onChangeText={setFirstName}
+              />
+              <CustomInput
+                placeholder="Last Name"
+                placeholderTextColor="#888"
+                style={[styles.input, styles.halfInput]}
+                value={lastName}
+                onChangeText={setLastName}
+              />
+            </View>
+
+            <CustomInput
+              placeholder="Email"
+              placeholderTextColor="#888"
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+            />
+            <CustomInput
+              placeholder="Password"
+              placeholderTextColor="#888"
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+
+            <View style={styles.row}>
+              <CountryPicker
+                withCallingCode
+                withFilter
+                withFlag
+                countryCode={countryCode}
+                onSelect={(country) => {
+                  setCountryCode(country.cca2);
+                  setCallingCode(`+${country.callingCode}`);
+                }}
+                containerButtonStyle={styles.countryCodeInput}
+              />
+              <CustomInput
+                placeholder="Phone Number"
+                placeholderTextColor="#888"
+                style={[styles.input, styles.phoneNumberInput]}
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                keyboardType="phone-pad"
+              />
+            </View>
+          </View>
+
+          <View style={styles.footer}>
+            <CustomButton
+              title="Sign Up"
+              onPress={handleSignup}
+              style={styles.button}
+              textStyle={styles.buttonText}
+            />
+            <CustomButton
+              title="Already have an account? Login"
+              onPress={() => navigation.navigate('LoginScreen')}
+              style={styles.button1}
+              textStyle={styles.linkText}
+            />
+          </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -143,18 +147,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  countryCodeInput: {
-    width: 80,
-    height: 42,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  phoneNumberInput: {
-    flex: 1, 
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
   },
   content: {
     flex: 1,
@@ -196,7 +191,6 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    
     marginBottom: 16,
   },
   input: {
@@ -210,10 +204,24 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 4,
   },
+  countryCodeInput: {
+    width: 80,
+    height: 66,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  phoneNumberInput: {
+    flex: 1,
+  },
   footer: {
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: '#ccc',
+    backgroundColor: '#fff',
   },
   button: {
     backgroundColor: 'green',

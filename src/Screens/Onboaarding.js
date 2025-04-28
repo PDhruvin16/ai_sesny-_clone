@@ -76,7 +76,7 @@ const OnboardingScreen = ({ navigation }) => {
                 key={index}
                 style={[
                   styles.dot,
-                  currentIndex === index && { backgroundColor: '#0066FF' },
+                  currentIndex === index && { backgroundColor: '#03CF65' },
                 ]}
               />
             ))}
@@ -107,6 +107,7 @@ const OnboardingScreen = ({ navigation }) => {
       height: 300,
       width: 300,
       marginVertical: 40,
+      resizeMode: 'contain',
     },
     title: {
       fontSize: 24,
@@ -137,13 +138,15 @@ const OnboardingScreen = ({ navigation }) => {
       marginHorizontal: 5,
     },
     button: {
-      backgroundColor: '#0066FF',
+      backgroundColor: '#03CF65',
       paddingVertical: 14,
       paddingHorizontal: 40,
       borderRadius: 25,
+      width: '80%',
     },
     buttonText: {
       color: '#fff',
       fontSize: 16,
+      textAlign: 'center',
     },
   });
